@@ -1,0 +1,16 @@
+{
+  "name": "customer-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hogar+ — App Cliente (React Native)",
+  "main": "App.tsx",
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.74.1",
+    "@react-navigation/native": "^6.1.17",
+    "@react-navigation/native-stack": "^6.9.26"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0"
+  }
+}
