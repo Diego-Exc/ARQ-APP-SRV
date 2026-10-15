@@ -3,7 +3,7 @@
 - **Estado:** Aceptado
 - **Fecha:** 2026-10-14
 - **Decisores:** Equipo del proyecto
-- **Relacionado con:** [ADR 0001 — Monolito modular como estilo arquitectónico del MVP](0001-monolito-modular.md)
+- **Relacionado con:** [ADR 001: Selección de Estilo Arquitectónico](0001-monolito-modular.md)
 
 ## Contexto
 

@@ -215,8 +215,7 @@ Los diagramas de secuencia complementan los casos de uso críticos.
     03-alcance-mvp.md
     adr/
       0001-monolito-modular.md
-      0002-estrategia-matching.md
-      0003-pasarela-pagos.md
+      0002-estructura-interna-repositorio.md
     diagrams/
   apps/
     customer_app/
@@ -238,6 +237,7 @@ Los diagramas de secuencia complementan los casos de uso críticos.
         notifications/
         admin/
       shared/
+      bootstrap/
     tests/
   infra/
   README.md
@@ -309,7 +309,9 @@ La selección definitiva se formaliza mediante ADR.
 
 ## Documentos siguientes
 
-1. Alcance MVP e historias de usuario  
-2. ADR 0001 — monolito modular  
-3. Diagramas C1 y C2  
-4. Especificación de matching y pagos  
+1. Alcance MVP e historias de usuario
+2. ADR 001 — selección de estilo arquitectónico (monolito modular) ✅
+3. ADR 002 — estructura interna del repositorio (monorepo, hexagonal por módulo) ✅
+4. Diagramas C1 y C2
+5. ADR de estrategia de matching
+6. ADR de pasarela de pagos
