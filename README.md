@@ -16,6 +16,43 @@ docs/           Documentación de producto, arquitectura y ADRs
 infra/          Infraestructura y despliegue
 ```
 
+## Cómo iniciar la app
+
+### Backend (API)
+
+El backend sigue el patrón hexagonal por módulo definido en [ADR 002](docs/adr/0002-estructura-interna-repositorio.md). Hoy expone únicamente el punto de composición (`backend/src/bootstrap/`) con un endpoint de salud; los módulos de dominio (`backend/src/modules/*`) están con la estructura de carpetas lista para implementarse.
+
+```bash
+cd backend
+npm install
+npm run dev        # http://localhost:3000/health
+```
+
+Variables de entorno (ninguna obligatoria todavía): se definirán en un `.env` por componente a medida que se integren base de datos, mapas, pagos e IA (ver ADR 0001, principio de seguridad por diseño).
+
+### Aplicaciones móviles (`apps/customer_app`, `apps/pro_app`)
+
+Por ahora son el código fuente de las pantallas (React Native + React Navigation) sin el andamiaje nativo (`index.js`, `android/`, `ios/`, `metro.config.js`). Hoy se pueden revisar y lintear, pero **no arrancan todavía** con `react-native run-android` / `run-ios`:
+
+```bash
+cd apps/customer_app
+npm install
+npx tsc --noEmit    # chequeo de tipos
+```
+
+Completar el andamiaje de React Native (o decidir Expo como alternativa) queda pendiente como una tarea de implementación, no de arquitectura.
+
+### Panel de administración (`apps/admin_web`)
+
+Aún no tiene código; solo existe la carpeta reservada en la estructura del monorepo (ADR 002).
+
+### Lint global
+
+```bash
+npm install
+npm run lint
+```
+
 ## Estrategia de Branching
 
 Adoptamos **GitHub Flow** como estrategia de branching, con `main` como única rama de integración protegida y ramas `feature/*` de corta duración para cada cambio.

@@ -1,4 +1,7 @@
-# ADR 0001 — Monolito modular como estilo arquitectónico del MVP
+# ADR 001: Selección de Estilo Arquitectónico
+
+## ¿Qué es un ADR?
+Un **ADR (Architecture Decision Record)** es un documento breve que registra una decisión arquitectónica significativa: el contexto que la motivó, la decisión tomada, las alternativas evaluadas y sus consecuencias (positivas y negativas). Se numera de forma secuencial (ADR 001, 002, ...) y se versiona junto al resto de la documentación del proyecto, de modo que el equipo —y cualquier persona que se incorpore después— pueda entender por qué la arquitectura es como es sin reconstruir la discusión original.
 
 ## Estado
 Aceptado

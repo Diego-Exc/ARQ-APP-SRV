@@ -1,0 +1,16 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API del marketplace — monolito modular (ADR 0001), estructura hexagonal por módulo (ADR 002)",
+  "main": "src/bootstrap/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/bootstrap/index.ts",
+    "start": "tsx src/bootstrap/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.5"
+  }
+}
