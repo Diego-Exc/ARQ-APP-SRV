@@ -19,7 +19,18 @@ El sistema tiene además flujos con requisitos de comunicación diferentes: oper
 
 ## Decisión
 
-Se adopta una **estrategia de comunicación híbrida**, diferenciada por tipo de interacción:
+Se evaluaron las seis tecnologías de comunicación discutidas en clase. El resultado de esa evaluación es:
+
+| Tecnología | Estado | Uso en ArreglaPues |
+|---|---|---|
+| **REST** | ✅ **Seleccionada** | Comunicación cliente (apps/web) ↔ API |
+| **WebSocket** | ✅ **Seleccionada** | Actualizaciones en tiempo real (estado del servicio, ubicación, ofertas de matching) |
+| **Webhook** | ✅ **Seleccionada** | Confirmación de pago desde la pasarela externa |
+| **SOAP** | ❌ Descartada | Ver "Alternativas consideradas" — sin ventaja para clientes móviles modernos |
+| **GraphQL** | ❌ Descartada para el MVP | Ver "Alternativas consideradas" — reconsiderable a futuro para el panel admin |
+| **gRPC** | ❌ Descartada en esta etapa | Ver "Alternativas consideradas" — candidata si se extrae un módulo como servicio independiente |
+
+Se adopta entonces una **estrategia de comunicación híbrida**, combinando únicamente las tres tecnologías seleccionadas, diferenciada por tipo de interacción:
 
 | Interacción | Modo | Tecnología | Justificación breve |
 |---|---|---|---|
