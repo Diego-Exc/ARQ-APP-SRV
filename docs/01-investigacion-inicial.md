@@ -1,8 +1,10 @@
-# Servicios del Hogar — Documentación de investigación inicial
+# ArreglaPues — Documentación de investigación inicial
 
 > Documento de definición del proyecto. Establece el problema, el alcance, los actores, los flujos y los criterios de análisis previos al diseño detallado e implementación.
 
-**Definición del producto:** marketplace de servicios del hogar con dos aplicaciones (cliente y profesional). El usuario describe un daño (texto, foto o voz); el sistema clasifica el oficio mediante inteligencia artificial y conecta con técnicos cercanos disponibles, con tarifas y pago dentro de la plataforma.
+**Nombre del producto:** ArreglaPues.
+
+**Definición del producto:** marketplace de servicios del hogar con dos aplicaciones (cliente y profesional). El usuario describe un daño (texto, foto o voz); el sistema clasifica el oficio mediante inteligencia artificial y conecta con técnicos cercanos disponibles, con tarifas y pago dentro de la plataforma. Ciudad piloto: Medellín.
 
 **Referencias de modelo de negocio:** Rappi / DiDi (matching, ubicación y estado del servicio), TaskRabbit / GetNinjas / Homely (oficios), con capa de diagnóstico asistido por IA.
 
@@ -243,16 +245,16 @@ Se distinguen el **precio del servicio** y la **comisión de la plataforma**.
 
 ---
 
-## 10. Decisiones pendientes de cierre
+## 10. Decisiones de cierre
 
-1. Nombre y marca del producto
-2. Ciudad piloto
-3. Parámetros exactos del matching híbrido
-4. Alcance de la IA dentro del MVP
-5. Uso de pagos reales o simulados en la entrega académica
-6. Inclusión o exclusión de segmentos B2B
-7. Tratamiento de veterinaria en el roadmap
-8. Política de responsabilidad ante fallas en el servicio
+1. **Nombre y marca del producto:** ArreglaPues.
+2. **Ciudad piloto:** Medellín.
+3. **Parámetros exactos del matching híbrido** (estilo DiDi/Uber): búsqueda inicial en un radio de 3 km, con expansión en incrementos de 2 km (hasta un máximo de 10 km) si no hay técnicos disponibles habilitados para el oficio. Se presenta al cliente una lista ordenada de hasta 5 candidatos, calculada con un puntaje ponderado (60% cercanía, 40% calificación). Cada técnico de la lista tiene una ventana de ~45 segundos para aceptar antes de ofrecer la solicitud al siguiente; si el cliente no interactúa en ese tiempo, el sistema asigna automáticamente al técnico mejor puntuado disponible.
+4. **Alcance de la IA dentro del MVP:** simulada por alcance del curso — clasificación del oficio mediante reglas/mock (sin integración con un proveedor LLM real), tal como ya está representado en `apps/customer_app/src/data/mock.ts`. Queda documentada como extensión futura la integración con un modelo real.
+5. **Uso de pagos reales o simulados en la entrega académica:** pagos simulados — no se cuenta con proveedor/pasarela bancaria para el alcance del curso; el flujo de pago se registra como estado interno de la solicitud, sin integración con una pasarela real.
+6. **Segmentos B2B:** fuera del alcance del MVP académico. Se mantiene mencionado como posible extensión futura (ej. contratos de mantenimiento con administradoras de edificios o constructoras), sin desarrollo en esta etapa.
+7. **Veterinaria:** se mantiene fuera del MVP y se conserva en el roadmap como categoría futura, conforme a lo ya definido en la sección 2.
+8. **Responsabilidad ante fallas en el servicio:** modelo de plataforma intermediaria (estilo Rappi/Uber) — ArreglaPues no asume responsabilidad directa sobre la calidad de ejecución del oficio, que corresponde al técnico independiente. Se incorpora una sección de **reportes y gestión de disputas** (accesible desde la app cliente) donde el usuario puede reportar un servicio con problemas, similar al flujo de reporte de viaje/pedido de Rappi o Uber, para que el panel de administración revise el caso.
 
 ---
 
@@ -291,3 +293,5 @@ Para el curso de Arquitectura de Software, el valor del entregable radica en la 
 
 - `02-arquitectura-principios.md` — drivers, principios, módulos, capas y organización del repositorio
 - `adr/0001-monolito-modular.md` — decisión de estilo arquitectónico del MVP
+- `adr/0002-estructura-interna-repositorio.md` — decisión de estructura interna del repositorio (monorepo y organización hexagonal por módulo)
+- `adr/0003-estrategia-comunicacion.md` — decisión de estrategia de comunicación (REST, WebSocket, Webhooks y eventos de dominio internos)

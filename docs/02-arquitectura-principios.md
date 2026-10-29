@@ -6,6 +6,18 @@
 
 ---
 
+## Abstract
+
+ArreglaPues is a home-services marketplace that connects households with independent technicians across five initial trades — plumbing, electrical work, locksmithing, basic appliance repair, and minor painting/drywall — piloted in Medellín, Colombia. The platform's point of entry is an AI-assisted damage diagnosis: the user describes a problem through text, photo, or voice, and the system classifies the required trade, estimates urgency, and routes the request to nearby available technicians through a hybrid matching model (ranked list by distance and rating, with automatic assignment to the closest qualified technician when the customer does not respond within a defined time window).
+
+From an architectural standpoint, the system is designed as a **modular monolith** (ADR-0001) composed of twelve bounded-context modules (identity, requests, matching, diagnosis, pricing, payments, service lifecycle, ratings, notifications, catalog, profiles, and admin), each internally organized as a **hexagonal architecture** (domain, application, and adapter layers) within a single deployable backend and a monorepo layout (ADR-0002). This style was chosen over a microservices architecture given the team size (two developers), the academic project scope, and the current maturity of the CI/CD pipeline, while still preserving clear module boundaries that enable a future migration to independent services.
+
+Five quality attributes — derived from ISO/IEC 25010 — drive the architectural decisions: **security** (protection of personal data, home location, and payment information), **performance efficiency** (bounded latency for geospatial matching and AI classification), **reliability** (fault isolation so that partial failures of external dependencies do not interrupt the core request-to-payment flow), **usability** (a guided flow for users who cannot identify the required trade), and **maintainability** (the ability to add new trades, payment methods, or integrations without cross-cutting changes). Given the academic scope of the current milestone and the absence of a banking provider, both the AI classification module and the payment gateway are **simulated** (rule-based mock and internal request-state tracking, respectively), while the client mobile application is the most advanced component, with six functional screens already implemented over mock data.
+
+**Keywords:** home services marketplace, modular monolith, hexagonal architecture, AI-assisted diagnosis, quality attributes, hybrid matching, ISO/IEC 25010.
+
+---
+
 ## 1. Drivers arquitectónicos
 
 | Driver | Relevancia en el sistema |
@@ -200,6 +212,12 @@ Reglas:
 | C2 Containers | App cliente, app profesional, API, base de datos, almacenamiento, workers |
 | C3 Components | Módulos de dominio dentro de la API |
 | C4 Code | Detalle selectivo de matching o payments |
+
+### Diagrama de contenedores (C2)
+
+![Diagrama de contenedores C4 de ArreglaPues](diagrams/diagrama-c4-contenedores.png)
+
+El diagrama muestra los tres clientes (app cliente, app profesional y panel de administración) consumiendo la API del backend vía HTTPS/REST. La API se representa como monolito modular con los 12 módulos de dominio (identity, requests, matching, diagnosis, pricing, payments, service_lifecycle, ratings, notifications, catalog, profiles, admin), que persiste en una base de datos (PostgreSQL + PostGIS propuesto) con almacenamiento de evidencias fotográficas, y se integra con cuatro sistemas externos — proveedor de IA, pasarela de pagos, mapas/geolocalización y notificaciones push — todos ellos **simulados** en el alcance académico actual (ver ADR-0001 y decisiones de cierre en `01-investigacion-inicial.md`).
 
 Los diagramas de secuencia complementan los casos de uso críticos.
 
