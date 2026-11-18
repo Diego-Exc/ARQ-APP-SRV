@@ -1,0 +1,223 @@
+openapi: 3.0.3
+info:
+  title: ArreglaPues API
+  version: "1.0.0"
+  description: >
+    Contrato REST del backend (monolito modular, ADR-0001/0002), documentado a
+    partir de lo efectivamente implementado en backend/src (ADR-0003 exige
+    diseño contract-first para endpoints nuevos; este contrato formaliza el
+    alcance ya construido del MVP académico).
+servers:
+  - url: http://localhost:3000/v1
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      summary: Registrar un nuevo usuario (CLIENT, PRO o ADMIN)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name, role]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+                name: { type: string }
+                role: { type: string, enum: [CLIENT, PRO, ADMIN] }
+      responses:
+        "201": { description: Usuario creado, retorna token JWT }
+        "409": { description: El correo ya está registrado }
+  /auth/login:
+    post:
+      summary: Iniciar sesión
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200": { description: Token JWT y datos del usuario }
+        "401": { description: Credenciales inválidas }
+  /catalog/trades:
+    get:
+      summary: Listar oficios del catálogo
+      responses:
+        "200": { description: Lista de oficios con precio de referencia }
+  /requests:
+    post:
+      summary: Crear una solicitud de servicio (clasificada por IA simulada)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description, location]
+              properties:
+                description: { type: string }
+                photos: { type: array, items: { type: string } }
+                location:
+                  type: object
+                  required: [lat, lng]
+                  properties: { lat: { type: number }, lng: { type: number } }
+      responses:
+        "201": { description: Solicitud creada con clasificación de oficio, urgencia y confianza }
+  /requests/{id}:
+    get:
+      summary: Consultar una solicitud
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Detalle de la solicitud }
+        "404": { description: No encontrada }
+  /matching/candidates:
+    post:
+      summary: Buscar técnicos candidatos (matching híbrido, ver ADR-0004)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestId, tradeId, clientLocation]
+              properties:
+                requestId: { type: string }
+                tradeId: { type: string }
+                clientLocation:
+                  type: object
+                  properties: { lat: { type: number }, lng: { type: number } }
+      responses:
+        "200": { description: Candidatos ordenados por score (60% cercanía / 40% calificación) }
+        "404": { description: Sin técnicos disponibles dentro del radio máximo }
+  /technicians:
+    get:
+      summary: Listar perfiles de técnicos
+      responses:
+        "200": { description: Lista de perfiles }
+  /technicians/{id}/availability:
+    patch:
+      summary: Marcar un técnico en línea / fuera de línea
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { online: { type: boolean } } }
+      responses:
+        "204": { description: Actualizado }
+  /technicians/{id}/offers:
+    get:
+      summary: Listar ofertas de matching pendientes para un técnico
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Ofertas vigentes (se limpian al aceptarse el servicio) }
+  /services/{requestId}:
+    get:
+      summary: Consultar el estado del ciclo de vida del servicio
+      parameters:
+        - { name: requestId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Estado actual (máquina de estados) }
+  /services/{requestId}/accept:
+    post:
+      summary: Un técnico acepta el servicio (SUBMITTED/MATCHING → ASSIGNED)
+      parameters:
+        - { name: requestId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { technicianId: { type: string } } }
+      responses:
+        "200": { description: Servicio asignado }
+        "409": { description: Transición inválida o ya asignado a otro técnico }
+  /services/{requestId}/state:
+    patch:
+      summary: Avanzar el estado del servicio
+      parameters:
+        - { name: requestId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                state: { type: string, enum: [EN_ROUTE, IN_PROGRESS, COMPLETED, CANCELLED, DISPUTED, RATED] }
+      responses:
+        "200": { description: Estado actualizado }
+        "409": { description: Transición inválida }
+  /pricing/quote:
+    post:
+      summary: Calcular el desglose de precio final
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                laborCost: { type: number }
+                materialsCost: { type: number }
+                discount: { type: number }
+      responses:
+        "200": { description: Desglose de precio (mano de obra, materiales, descuento, total) }
+  /payments/capture:
+    post:
+      summary: Capturar un pago simulado (idempotente, escenario S2)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestId, idempotencyKey, amount, method]
+              properties:
+                requestId: { type: string }
+                idempotencyKey: { type: string }
+                amount: { type: number }
+                method: { type: string }
+      responses:
+        "201": { description: Pago capturado (o el mismo pago si la clave ya existía) }
+  /ratings:
+    post:
+      summary: Calificar un servicio (habilitado tras confirmar el pago)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestId, technicianId, stars]
+              properties:
+                requestId: { type: string }
+                technicianId: { type: string }
+                stars: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string }
+      responses:
+        "201": { description: Calificación registrada; el servicio pasa a RATED }
+        "409": { description: La ventana de calificación aún no está abierta }
+  /admin/technicians/pending:
+    get:
+      summary: Listar técnicos pendientes de aprobación
+      responses:
+        "200": { description: Lista de perfiles no verificados }
+  /admin/technicians/{id}/approve:
+    post:
+      summary: Aprobar un técnico
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Técnico aprobado }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
