@@ -1,42 +1,64 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors } from "../theme/colors";
-import { technicians } from "../data/mock";
+import { api } from "../api/client";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 
-type Props = {
-  navigation: { navigate: (screen: string) => void };
-};
+const STEPS = [
+  { key: "ASSIGNED", label: "Aceptado" },
+  { key: "EN_ROUTE", label: "En camino" },
+  { key: "IN_PROGRESS", label: "En progreso" },
+  { key: "COMPLETED", label: "Finalizado" },
+];
 
-const STATUSES = ["Solicitado", "Aceptado", "En camino", "En progreso", "Finalizado"];
-const CURRENT_STATUS_INDEX = 2;
+type Props = NativeStackScreenProps<RootStackParamList, "Tracking">;
 
-export function TrackingScreen({ navigation }: Props): JSX.Element {
-  const technician = technicians[0];
+export function TrackingScreen({ navigation, route }: Props): JSX.Element {
+  const { requestId, technicianId, technicianName } = route.params;
+  const [state, setState] = useState("ASSIGNED");
+  const [loading, setLoading] = useState(false);
+
+  // Canal en tiempo real (ADR-0003): el estado se refleja apenas el backend
+  // lo cambia, sin necesidad de polling (escenario de calidad U2).
+  useEffect(() => {
+    const close = api.openServiceSocket(requestId, (lifecycle) => setState(lifecycle.state));
+    // El técnico "sale en camino" automáticamente al confirmar la asignación,
+    // simulando la actualización que en producción enviaría la app Pro.
+    api.advanceState(requestId, "EN_ROUTE").catch(() => undefined);
+    return close;
+  }, [requestId]);
+
+  const currentIndex = STEPS.findIndex((step) => step.key === state);
+
+  async function handleContinue() {
+    setLoading(true);
+    try {
+      await api.advanceState(requestId, "IN_PROGRESS");
+      navigation.navigate("ServiceProgress", { requestId, technicianId });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapLabel}>Mapa en vivo · {technician.name} en camino</Text>
+        <Text style={styles.mapLabel}>Mapa en vivo · {technicianName} en camino</Text>
       </View>
 
       <View style={styles.stepper}>
-        {STATUSES.map((status, index) => (
-          <View key={status} style={styles.stepperItem}>
-            <View
-              style={[
-                styles.stepDot,
-                index <= CURRENT_STATUS_INDEX && styles.stepDotActive,
-              ]}
-            />
-            <Text style={styles.stepLabel}>{status}</Text>
+        {STEPS.map((step, index) => (
+          <View key={step.key} style={styles.stepperItem}>
+            <View style={[styles.stepDot, index <= currentIndex && styles.stepDotActive]} />
+            <Text style={styles.stepLabel}>{step.label}</Text>
           </View>
         ))}
       </View>
 
       <View style={styles.driverCard}>
-        <Text style={styles.driverName}>{technician.name}</Text>
-        <Text style={styles.driverMeta}>★ {technician.rating.toFixed(2)} · {technician.reviews} servicios</Text>
-        <Text style={styles.eta}>Llegada estimada: {technician.etaMinutes} min</Text>
+        <Text style={styles.driverName}>{technicianName}</Text>
+        <Text style={styles.driverMeta}>Estado actual: {state}</Text>
 
         <View style={styles.securityBox}>
           <Text style={styles.securityLabel}>Código de Seguridad</Text>
@@ -44,11 +66,8 @@ export function TrackingScreen({ navigation }: Props): JSX.Element {
           <Text style={styles.securityHint}>Pídeselo al técnico antes de abrir la puerta</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.ctaButton}
-          onPress={() => navigation.navigate("ServiceProgress")}
-        >
-          <Text style={styles.ctaText}>Ver servicio en progreso</Text>
+        <TouchableOpacity style={styles.ctaButton} onPress={handleContinue} disabled={loading}>
+          {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Ver servicio en progreso</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -88,7 +107,6 @@ const styles = StyleSheet.create({
   },
   driverName: { fontWeight: "700", fontSize: 16, color: colors.textPrimary },
   driverMeta: { color: colors.textSecondary, marginTop: 2 },
-  eta: { color: colors.primary, fontWeight: "600", marginTop: 6 },
   securityBox: {
     backgroundColor: colors.background,
     borderRadius: 12,

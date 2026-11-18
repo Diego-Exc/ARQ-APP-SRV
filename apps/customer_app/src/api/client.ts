@@ -1,0 +1,156 @@
+// Cliente REST hacia el backend (ADR-0003: REST sobre HTTPS para cliente↔API,
+// contrato versionado en /v1). En un emulador Android usar 10.0.2.2 en vez de
+// localhost; se puede sobrescribir con la variable de entorno EXPO_PUBLIC_API_URL.
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000/v1";
+
+let authToken: string | null = null;
+
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
+export interface CreateRequestResult {
+  requestId: string;
+  tradeId: string | null;
+  tradeName: string | null;
+  confidence: number;
+  urgency: string;
+  urgencyReason: string;
+}
+
+export interface Candidate {
+  technicianId: string;
+  name: string;
+  distanceKm: number;
+  rating: number;
+  score: number;
+}
+
+export interface FindCandidatesResult {
+  candidates: Candidate[];
+  radiusUsedKm: number;
+}
+
+export interface LifecycleState {
+  requestId: string;
+  state: string;
+  assignedTechnicianId: string | null;
+  updatedAt: string;
+}
+
+export interface PricingBreakdown {
+  laborCost: { amount: number; currency: string };
+  materialsCost: { amount: number; currency: string };
+  discount: { amount: number; currency: string };
+  total: { amount: number; currency: string };
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail ?? `Error ${response.status} al llamar ${path}`);
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
+}
+
+export const api = {
+  // Identity: sesión de demostración (en una app real el usuario se registra
+  // explícitamente; aquí se automatiza para no salir del flujo de las 6
+  // pantallas del MVP, ver README).
+  async ensureDemoSession(): Promise<void> {
+    if (authToken) return;
+    const email = "cliente.demo@arreglapues.app";
+    const password = "demo12345";
+    try {
+      const result = await request<{ token: string }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      authToken = result.token;
+    } catch {
+      const result = await request<{ token: string }>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password, name: "Cliente Demo", role: "CLIENT" }),
+      });
+      authToken = result.token;
+    }
+  },
+
+  createRequest(description: string, location: GeoPoint, photos: string[] = []) {
+    return request<CreateRequestResult>("/requests", {
+      method: "POST",
+      body: JSON.stringify({ description, location, photos }),
+    });
+  },
+
+  findCandidates(requestId: string, tradeId: string, clientLocation: GeoPoint) {
+    return request<FindCandidatesResult>("/matching/candidates", {
+      method: "POST",
+      body: JSON.stringify({ requestId, tradeId, clientLocation }),
+    });
+  },
+
+  acceptService(requestId: string, technicianId: string) {
+    return request<LifecycleState>(`/services/${requestId}/accept`, {
+      method: "POST",
+      body: JSON.stringify({ technicianId }),
+    });
+  },
+
+  advanceState(requestId: string, state: string) {
+    return request<LifecycleState>(`/services/${requestId}/state`, {
+      method: "PATCH",
+      body: JSON.stringify({ state }),
+    });
+  },
+
+  getServiceState(requestId: string) {
+    return request<LifecycleState>(`/services/${requestId}`);
+  },
+
+  pricingQuote(laborCost: number, materialsCost: number, discount = 0) {
+    return request<PricingBreakdown>("/pricing/quote", {
+      method: "POST",
+      body: JSON.stringify({ laborCost, materialsCost, discount }),
+    });
+  },
+
+  capturePayment(requestId: string, idempotencyKey: string, amount: number, method: string) {
+    return request<{ id: string; status: string }>("/payments/capture", {
+      method: "POST",
+      body: JSON.stringify({ requestId, idempotencyKey, amount, method }),
+    });
+  },
+
+  submitRating(requestId: string, technicianId: string, stars: number, comment?: string) {
+    return request<{ id: string }>("/ratings", {
+      method: "POST",
+      body: JSON.stringify({ requestId, technicianId, stars, comment }),
+    });
+  },
+
+  // WebSocket de tracking en tiempo real (ADR-0003).
+  openServiceSocket(requestId: string, onState: (state: LifecycleState) => void): () => void {
+    const wsUrl = BASE_URL.replace(/^http/, "ws").replace(/\/v1$/, "");
+    const socket = new WebSocket(`${wsUrl}/v1/ws/services?requestId=${requestId}`);
+    socket.onmessage = (event) => {
+      try {
+        onState(JSON.parse(event.data));
+      } catch {
+        // Mensaje no reconocido: se ignora, el flujo principal no depende de él.
+      }
+    };
+    return () => socket.close();
+  },
+};

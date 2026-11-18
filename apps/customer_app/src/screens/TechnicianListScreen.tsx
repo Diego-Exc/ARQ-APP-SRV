@@ -1,16 +1,36 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text, Switch, TouchableOpacity, StyleSheet } from "react-native";
+import { ScrollView, View, Text, Switch, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors } from "../theme/colors";
-import { technicians, Technician } from "../data/mock";
-import { formatCOP } from "../utils/format";
+import { api, Candidate } from "../api/client";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 
-type Props = {
-  navigation: { navigate: (screen: string) => void };
-};
+type Props = NativeStackScreenProps<RootStackParamList, "Technicians">;
 
-export function TechnicianListScreen({ navigation }: Props): JSX.Element {
+export function TechnicianListScreen({ navigation, route }: Props): JSX.Element {
+  const { requestId, candidates } = route.params;
   const [autoAssign, setAutoAssign] = useState(true);
-  const [selectedId, setSelectedId] = useState<string>(technicians[0].id);
+  const [selectedId, setSelectedId] = useState<string>(candidates[0]?.technicianId ?? "");
+  const [loading, setLoading] = useState(false);
+
+  const selected = candidates.find((c) => c.technicianId === selectedId);
+
+  async function handleConfirm() {
+    if (!selected) return;
+    setLoading(true);
+    try {
+      await api.acceptService(requestId, selected.technicianId);
+      navigation.navigate("Tracking", {
+        requestId,
+        technicianId: selected.technicianId,
+        technicianName: selected.name,
+      });
+    } catch (error) {
+      Alert.alert("No se pudo confirmar el técnico", (error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -21,20 +41,18 @@ export function TechnicianListScreen({ navigation }: Props): JSX.Element {
         <Switch value={autoAssign} onValueChange={setAutoAssign} />
       </View>
 
-      {technicians.map((technician) => (
+      {candidates.map((technician, index) => (
         <TechnicianCard
-          key={technician.id}
+          key={technician.technicianId}
           technician={technician}
-          selected={technician.id === selectedId}
-          onSelect={() => setSelectedId(technician.id)}
+          recommended={index === 0}
+          selected={technician.technicianId === selectedId}
+          onSelect={() => setSelectedId(technician.technicianId)}
         />
       ))}
 
-      <TouchableOpacity
-        style={styles.ctaButton}
-        onPress={() => navigation.navigate("Tracking")}
-      >
-        <Text style={styles.ctaText}>Confirmar y solicitar técnico</Text>
+      <TouchableOpacity style={styles.ctaButton} onPress={handleConfirm} disabled={loading || !selected}>
+        {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Confirmar y solicitar técnico</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -42,30 +60,23 @@ export function TechnicianListScreen({ navigation }: Props): JSX.Element {
 
 function TechnicianCard({
   technician,
+  recommended,
   selected,
   onSelect,
 }: {
-  technician: Technician;
+  technician: Candidate;
+  recommended: boolean;
   selected: boolean;
   onSelect: () => void;
 }): JSX.Element {
   return (
-    <TouchableOpacity
-      style={[styles.card, selected && styles.cardSelected]}
-      onPress={onSelect}
-    >
-      {technician.recommended ? (
-        <Text style={styles.recommendedTag}>RECOMENDADO HOGAR+</Text>
-      ) : null}
+    <TouchableOpacity style={[styles.card, selected && styles.cardSelected]} onPress={onSelect}>
+      {recommended ? <Text style={styles.recommendedTag}>RECOMENDADO ARREGLAPUES</Text> : null}
       <Text style={styles.name}>{technician.name}</Text>
-      <Text style={styles.trade}>{technician.trade}</Text>
       <View style={styles.metaRow}>
-        <Text style={styles.rating}>★ {technician.rating.toFixed(2)} · {technician.reviews} servicios</Text>
-        <Text style={styles.distance}>
-          {technician.distanceKm} km · Llega en ~{technician.etaMinutes} min
-        </Text>
+        <Text style={styles.rating}>★ {technician.rating.toFixed(2)}</Text>
+        <Text style={styles.distance}>{technician.distanceKm} km</Text>
       </View>
-      <Text style={styles.price}>{formatCOP(technician.price)}</Text>
     </TouchableOpacity>
   );
 }
@@ -95,11 +106,9 @@ const styles = StyleSheet.create({
   cardSelected: { borderColor: colors.accent, borderWidth: 2 },
   recommendedTag: { color: colors.accent, fontWeight: "700", fontSize: 11, marginBottom: 4 },
   name: { fontWeight: "700", color: colors.textPrimary, fontSize: 15 },
-  trade: { color: colors.textSecondary, marginTop: 2, fontSize: 12 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
   rating: { color: colors.textPrimary, fontSize: 12 },
   distance: { color: colors.textSecondary, fontSize: 12 },
-  price: { color: colors.primary, fontWeight: "700", marginTop: 8 },
   ctaButton: {
     backgroundColor: colors.accent,
     borderRadius: 12,

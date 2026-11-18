@@ -1,16 +1,11 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors } from "../theme/colors";
+import { api } from "../api/client";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 
-type ChecklistItem = {
-  id: string;
-  label: string;
-  done: boolean;
-};
-
-type Props = {
-  navigation: { navigate: (screen: string) => void };
-};
+type ChecklistItem = { id: string; label: string; done: boolean };
 
 const INITIAL_CHECKLIST: ChecklistItem[] = [
   { id: "shutoff", label: "Cierre de llave de paso principal", done: true },
@@ -20,16 +15,28 @@ const INITIAL_CHECKLIST: ChecklistItem[] = [
   { id: "cleanup", label: "Limpieza y desinfección del área de trabajo", done: false },
 ];
 
-export function ServiceProgressScreen({ navigation }: Props): JSX.Element {
+type Props = NativeStackScreenProps<RootStackParamList, "ServiceProgress">;
+
+export function ServiceProgressScreen({ navigation, route }: Props): JSX.Element {
+  const { requestId, technicianId } = route.params;
   const [checklist] = useState(INITIAL_CHECKLIST);
+  const [loading, setLoading] = useState(false);
   const completedCount = checklist.filter((item) => item.done).length;
+
+  async function handleFinish() {
+    setLoading(true);
+    try {
+      await api.advanceState(requestId, "COMPLETED");
+      navigation.navigate("Payment", { requestId, technicianId, laborCost: 60000 });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.header}>Servicio en Progreso</Text>
-      <Text style={styles.subheader}>
-        Reparación de fuga en desagüe y cambio de sifón
-      </Text>
+      <Text style={styles.subheader}>Reparación de fuga en desagüe y cambio de sifón</Text>
 
       <View style={styles.securityCard}>
         <Text style={styles.securityLabel}>Validación de Acceso Seguro</Text>
@@ -43,17 +50,12 @@ export function ServiceProgressScreen({ navigation }: Props): JSX.Element {
       {checklist.map((item) => (
         <View key={item.id} style={styles.checklistRow}>
           <View style={[styles.checkbox, item.done && styles.checkboxDone]} />
-          <Text style={[styles.checklistLabel, item.done && styles.checklistLabelDone]}>
-            {item.label}
-          </Text>
+          <Text style={[styles.checklistLabel, item.done && styles.checklistLabelDone]}>{item.label}</Text>
         </View>
       ))}
 
-      <TouchableOpacity
-        style={styles.ctaButton}
-        onPress={() => navigation.navigate("Payment")}
-      >
-        <Text style={styles.ctaText}>Ver resumen y pago</Text>
+      <TouchableOpacity style={styles.ctaButton} onPress={handleFinish} disabled={loading}>
+        {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Ver resumen y pago</Text>}
       </TouchableOpacity>
     </ScrollView>
   );

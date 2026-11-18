@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "ArreglaPues Pro",
+    "slug": "arreglapues-pro-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true },
+    "android": {},
+    "web": { "bundler": "metro" }
+  }
+}
