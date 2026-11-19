@@ -20,27 +20,36 @@ infra/          Infraestructura y despliegue
 
 ### Backend (API)
 
-El backend sigue el patrón hexagonal por módulo definido en [ADR 002](docs/adr/0002-estructura-interna-repositorio.md). Hoy expone únicamente el punto de composición (`backend/src/bootstrap/`) con un endpoint de salud; los módulos de dominio (`backend/src/modules/*`) están con la estructura de carpetas lista para implementarse.
+El backend sigue el patrón hexagonal por módulo definido en [ADR 002](docs/adr/0002-estructura-interna-repositorio.md). Los 10 módulos del flujo principal (`identity`, `catalog`, `profiles`, `diagnosis`, `requests`, `matching`, `service_lifecycle`, `pricing`, `payments`, `ratings`) están implementados con repositorios en memoria (ver [ADR 0005](docs/adr/0005-simulacion-ia-pagos.md)); `notifications` y `admin` son stubs funcionales. El contrato REST completo está en [`docs/api/openapi.yaml`](docs/api/openapi.yaml) y el canal de tiempo real en [`docs/api/eventos-tiempo-real.md`](docs/api/eventos-tiempo-real.md).
 
 ```bash
 cd backend
 npm install
 npm run dev        # http://localhost:3000/health
+npm test           # pruebas unitarias (máquina de estados, matching, idempotencia de pagos)
+npm run typecheck
 ```
 
-Variables de entorno (ninguna obligatoria todavía): se definirán en un `.env` por componente a medida que se integren base de datos, mapas, pagos e IA (ver ADR 0001, principio de seguridad por diseño).
+El backend precarga datos de demostración al arrancar: 5 oficios, 6 técnicos en Medellín y dos usuarios Pro (`tecnico1.demo@arreglapues.app` / `tecnico4.demo@arreglapues.app`, contraseña `demo12345`). No hay base de datos real ni variables de entorno obligatorias; `JWT_SECRET` y `PORT` son opcionales.
 
 ### Aplicaciones móviles (`apps/customer_app`, `apps/pro_app`)
 
-Por ahora son el código fuente de las pantallas (React Native + React Navigation) sin el andamiaje nativo (`index.js`, `android/`, `ios/`, `metro.config.js`). Hoy se pueden revisar y lintear, pero **no arrancan todavía** con `react-native run-android` / `run-ios`:
+Ambas apps están migradas a **Expo** (resolviendo el pendiente que esta misma sección marcaba antes) y consumen el backend real por REST y WebSocket:
 
 ```bash
-cd apps/customer_app
+cd apps/customer_app   # o apps/pro_app
 npm install
-npx tsc --noEmit    # chequeo de tipos
+npx expo start         # escanear el QR con Expo Go, o presionar "w" para la versión web
+npx tsc --noEmit        # chequeo de tipos
 ```
 
-Completar el andamiaje de React Native (o decidir Expo como alternativa) queda pendiente como una tarea de implementación, no de arquitectura.
+Por defecto apuntan a `http://localhost:3000/v1`. Para probar desde un dispositivo físico o un emulador Android, sobrescribir con la variable de entorno `EXPO_PUBLIC_API_URL` (en Android, usar `10.0.2.2` en vez de `localhost`).
+
+La app Cliente crea una sesión de demostración automáticamente al abrir (ver `src/api/client.ts`). La app Pro pide iniciar sesión con uno de los dos usuarios Pro de demostración.
+
+### Panel de administración (`apps/admin_web`)
+
+Aún no tiene código; solo existe la carpeta reservada en la estructura del monorepo (ADR 002). El backend ya expone `GET /v1/admin/technicians/pending` y `POST /v1/admin/technicians/{id}/approve` para cuando se implemente.
 
 ### Panel de administración (`apps/admin_web`)
 

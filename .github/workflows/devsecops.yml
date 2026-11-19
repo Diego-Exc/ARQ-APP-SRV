@@ -25,3 +25,25 @@ jobs:
 
       - name: Lint Code
         run: npx eslint . --ext .js,.jsx,.ts,.tsx
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Typecheck backend
+        working-directory: backend
+        run: npm run typecheck
+
+      - name: Run backend unit tests
+        working-directory: backend
+        run: npm test
