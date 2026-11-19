@@ -1,19 +1,41 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors } from "../theme/colors";
 import { categories } from "../data/mock";
 import { formatCOP } from "../utils/format";
+import { api } from "../api/client";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 
-type Props = {
-  navigation: { navigate: (screen: string) => void };
-};
+// Ubicación registrada de referencia (El Poblado, Medellín): no hay mapa en
+// el MVP, así que se usa como "última ubicación válida" (ADR-0002, P5).
+const CLIENT_LOCATION = { lat: 6.2090, lng: -75.5679 };
+
+type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props): JSX.Element {
   const [damageDescription, setDamageDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleDiagnose() {
+    if (!damageDescription.trim()) {
+      Alert.alert("Describe el daño", "Cuéntanos qué pasó para poder ayudarte.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await api.createRequest(damageDescription, CLIENT_LOCATION);
+      navigation.navigate("Diagnosis", { ...result, description: damageDescription });
+    } catch (error) {
+      Alert.alert("No se pudo diagnosticar", (error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.brand}>Hogar+ Express</Text>
+      <Text style={styles.brand}>ArreglaPues</Text>
       <Text style={styles.title}>Soluciones al instante</Text>
 
       <View style={styles.searchCard}>
@@ -25,11 +47,12 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
           value={damageDescription}
           onChangeText={setDamageDescription}
         />
-        <TouchableOpacity
-          style={styles.searchButton}
-          onPress={() => navigation.navigate("Diagnosis")}
-        >
-          <Text style={styles.searchButtonText}>Diagnosticar con IA</Text>
+        <TouchableOpacity style={styles.searchButton} onPress={handleDiagnose} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.searchButtonText}>Diagnosticar con IA</Text>
+          )}
         </TouchableOpacity>
       </View>
 

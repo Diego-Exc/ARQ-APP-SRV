@@ -1,48 +1,70 @@
-import React from "react";
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors } from "../theme/colors";
-import { diagnosis } from "../data/mock";
 import { formatCOP } from "../utils/format";
+import { categories } from "../data/mock";
+import { api } from "../api/client";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 
-type Props = {
-  navigation: { navigate: (screen: string) => void };
-};
+const CLIENT_LOCATION = { lat: 6.2090, lng: -75.5679 };
 
-export function DiagnosisScreen({ navigation }: Props): JSX.Element {
+type Props = NativeStackScreenProps<RootStackParamList, "Diagnosis">;
+
+export function DiagnosisScreen({ navigation, route }: Props): JSX.Element {
+  const { requestId, tradeId, tradeName, confidence, urgency, urgencyReason, description } = route.params;
+  const [loading, setLoading] = useState(false);
+
+  const priceFrom = categories.find((c) => c.id === tradeId)?.priceFrom ?? 45000;
+
+  async function handleSearchTechnicians() {
+    if (!tradeId) {
+      Alert.alert(
+        "Selecciona un oficio",
+        "La IA no identificó el oficio con certeza; vuelve al inicio y descríbelo con más detalle.",
+      );
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await api.findCandidates(requestId, tradeId, CLIENT_LOCATION);
+      navigation.navigate("Technicians", { requestId, candidates: result.candidates });
+    } catch (error) {
+      Alert.alert("No hay técnicos disponibles", (error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.header}>Diagnóstico IA del Daño</Text>
-      <Text style={styles.timestamp}>{diagnosis.reportedAt}</Text>
+      <Text style={styles.timestamp}>Reportado ahora</Text>
 
       <View style={styles.reportCard}>
         <Text style={styles.reportLabel}>Tu descripción reportada</Text>
-        <Text style={styles.reportText}>"{diagnosis.description}"</Text>
+        <Text style={styles.reportText}>"{description}"</Text>
       </View>
 
       <View style={styles.confidenceRow}>
         <Text style={styles.confidenceLabel}>Análisis IA completado</Text>
-        <Text style={styles.confidenceValue}>{Math.round(diagnosis.confidence * 100)}% certeza</Text>
+        <Text style={styles.confidenceValue}>{Math.round(confidence * 100)}% certeza</Text>
       </View>
 
       <View style={styles.urgencyCard}>
-        <Text style={styles.urgencyTitle}>{diagnosis.urgency}</Text>
-        <Text style={styles.urgencyReason}>{diagnosis.urgencyReason}</Text>
+        <Text style={styles.urgencyTitle}>{urgency}</Text>
+        <Text style={styles.urgencyReason}>{urgencyReason}</Text>
       </View>
 
       <View style={styles.tradeCard}>
         <Text style={styles.tradeLabel}>Oficio recomendado</Text>
-        <Text style={styles.tradeName}>{diagnosis.trade}</Text>
-        <Text style={styles.tradePrice}>
-          {formatCOP(diagnosis.priceRangeMin)} – {formatCOP(diagnosis.priceRangeMax)}
-        </Text>
+        <Text style={styles.tradeName}>{tradeName ?? "No identificado"}</Text>
+        {tradeId ? <Text style={styles.tradePrice}>Desde {formatCOP(priceFrom)}</Text> : null}
         <Text style={styles.tradeHint}>Tarifa estimada mano de obra (mano de obra base)</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.ctaButton}
-        onPress={() => navigation.navigate("Technicians")}
-      >
-        <Text style={styles.ctaText}>Buscar técnicos verificados</Text>
+      <TouchableOpacity style={styles.ctaButton} onPress={handleSearchTechnicians} disabled={loading}>
+        {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Buscar técnicos verificados</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate("Home")}>

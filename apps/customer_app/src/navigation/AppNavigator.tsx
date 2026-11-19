@@ -10,11 +10,22 @@ import { PaymentScreen } from "../screens/PaymentScreen";
 
 export type RootStackParamList = {
   Home: undefined;
-  Diagnosis: undefined;
-  Technicians: undefined;
-  Tracking: undefined;
-  ServiceProgress: undefined;
-  Payment: undefined;
+  Diagnosis: {
+    requestId: string;
+    tradeId: string | null;
+    tradeName: string | null;
+    confidence: number;
+    urgency: string;
+    urgencyReason: string;
+    description: string;
+  };
+  Technicians: {
+    requestId: string;
+    candidates: { technicianId: string; name: string; distanceKm: number; rating: number; score: number }[];
+  };
+  Tracking: { requestId: string; technicianId: string; technicianName: string };
+  ServiceProgress: { requestId: string; technicianId: string };
+  Payment: { requestId: string; technicianId: string; laborCost: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
