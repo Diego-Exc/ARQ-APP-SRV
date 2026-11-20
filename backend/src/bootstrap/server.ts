@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import bcrypt from "bcryptjs";
+import cors from "cors";
 import express, { Express, NextFunction, Request, Response } from "express";
 import { WebSocketServer } from "ws";
 import { ZodError } from "zod";
@@ -73,6 +74,11 @@ const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-arreglapues";
 
 export function createApp(): Express {
   const app = express();
+  // CORS abierto (ADR-0005, alcance académico): las apps web (customer_app
+  // y pro_app exportadas a react-native-web) se sirven desde un dominio
+  // distinto al de esta API, y el navegador sí aplica CORS a diferencia de
+  // Expo Go nativo.
+  app.use(cors());
   app.use(express.json());
 
   // --- Composición de dependencias por módulo (bootstrap, ADR-0002) ---
