@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { api } from "../api/client";
+import { CLIENT_LOCATION, lerpPoint, technicianStartPoint } from "../data/location";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const STEPS = [
@@ -12,15 +15,26 @@ const STEPS = [
   { key: "COMPLETED", label: "Finalizado" },
 ];
 
+// El técnico "avanza" hacia el cliente en función del estado del ciclo de
+// vida (datos de ubicación simulados, ver ADR-0005 y src/data/location.ts).
+const PROGRESS_BY_STATE: Record<string, number> = {
+  ASSIGNED: 0,
+  EN_ROUTE: 0.6,
+  IN_PROGRESS: 1,
+  COMPLETED: 1,
+};
+
 type Props = NativeStackScreenProps<RootStackParamList, "Tracking">;
 
-export function TrackingScreen({ navigation, route }: Props): JSX.Element {
-  const { requestId, technicianId, technicianName } = route.params;
+export function TrackingScreen({ navigation, route }: Props): React.JSX.Element {
+  const { requestId, technicianId, technicianName, distanceKm } = route.params;
   const [state, setState] = useState("ASSIGNED");
   const [loading, setLoading] = useState(false);
 
-  // Canal en tiempo real (ADR-0003): el estado se refleja apenas el backend
-  // lo cambia, sin necesidad de polling (escenario de calidad U2).
+  const technicianOrigin = useMemo(() => technicianStartPoint(distanceKm), [distanceKm]);
+  const progress = PROGRESS_BY_STATE[state] ?? 0;
+  const technicianPosition = lerpPoint(technicianOrigin, CLIENT_LOCATION, progress);
+
   useEffect(() => {
     const close = api.openServiceSocket(requestId, (lifecycle) => setState(lifecycle.state));
     // El técnico "sale en camino" automáticamente al confirmar la asignación,
@@ -43,8 +57,34 @@ export function TrackingScreen({ navigation, route }: Props): JSX.Element {
 
   return (
     <View style={styles.container}>
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapLabel}>Mapa en vivo · {technicianName} en camino</Text>
+      <View style={styles.mapWrapper}>
+        <MapView
+          provider={PROVIDER_DEFAULT}
+          style={styles.map}
+          initialRegion={{
+            latitude: (technicianOrigin.lat + CLIENT_LOCATION.lat) / 2,
+            longitude: (technicianOrigin.lng + CLIENT_LOCATION.lng) / 2,
+            latitudeDelta: Math.max(Math.abs(technicianOrigin.lat - CLIENT_LOCATION.lat) * 2.5, 0.02),
+            longitudeDelta: Math.max(Math.abs(technicianOrigin.lng - CLIENT_LOCATION.lng) * 2.5, 0.02),
+          }}
+        >
+          <Marker coordinate={{ latitude: CLIENT_LOCATION.lat, longitude: CLIENT_LOCATION.lng }} title="Tu dirección">
+            <View style={[styles.pin, styles.pinHome]}>
+              <Ionicons name="home" size={16} color="#FFFFFF" />
+            </View>
+          </Marker>
+          <Marker
+            coordinate={{ latitude: technicianPosition.lat, longitude: technicianPosition.lng }}
+            title={technicianName}
+          >
+            <View style={[styles.pin, styles.pinTechnician]}>
+              <Ionicons name="construct" size={16} color="#FFFFFF" />
+            </View>
+          </Marker>
+        </MapView>
+        <View style={styles.mapBadge}>
+          <Text style={styles.mapBadgeText}>{technicianName} en camino</Text>
+        </View>
       </View>
 
       <View style={styles.stepper}>
@@ -57,10 +97,18 @@ export function TrackingScreen({ navigation, route }: Props): JSX.Element {
       </View>
 
       <View style={styles.driverCard}>
-        <Text style={styles.driverName}>{technicianName}</Text>
-        <Text style={styles.driverMeta}>Estado actual: {state}</Text>
+        <View style={styles.driverHeader}>
+          <View style={styles.driverAvatar}>
+            <Ionicons name="person" size={20} color={colors.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.driverName}>{technicianName}</Text>
+            <Text style={styles.driverMeta}>Estado actual: {state}</Text>
+          </View>
+        </View>
 
         <View style={styles.securityBox}>
+          <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
           <Text style={styles.securityLabel}>Código de Seguridad</Text>
           <Text style={styles.securityCode}>8492</Text>
           <Text style={styles.securityHint}>Pídeselo al técnico antes de abrir la puerta</Text>
@@ -76,13 +124,30 @@ export function TrackingScreen({ navigation, route }: Props): JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  mapPlaceholder: {
-    height: 220,
-    backgroundColor: "#E0F2FE",
-    justifyContent: "center",
-    alignItems: "center",
+  mapWrapper: { height: 240 },
+  map: { flex: 1 },
+  mapBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    right: 12,
+    backgroundColor: "rgba(15,23,42,0.85)",
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
-  mapLabel: { color: colors.primary, fontWeight: "600" },
+  mapBadgeText: { color: "#FFFFFF", fontWeight: "600", fontSize: 12 },
+  pin: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  pinHome: { backgroundColor: colors.primary },
+  pinTechnician: { backgroundColor: colors.accent },
   stepper: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -105,6 +170,15 @@ const styles = StyleSheet.create({
     padding: 16,
     flex: 1,
   },
+  driverHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  driverAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   driverName: { fontWeight: "700", fontSize: 16, color: colors.textPrimary },
   driverMeta: { color: colors.textSecondary, marginTop: 2 },
   securityBox: {
@@ -114,7 +188,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     alignItems: "center",
   },
-  securityLabel: { color: colors.textSecondary, fontSize: 12 },
+  securityLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
   securityCode: { fontSize: 28, fontWeight: "700", color: colors.primary, letterSpacing: 6 },
   securityHint: { color: colors.textSecondary, fontSize: 11, marginTop: 2 },
   ctaButton: {

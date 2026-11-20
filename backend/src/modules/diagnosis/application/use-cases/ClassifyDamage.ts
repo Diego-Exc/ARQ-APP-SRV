@@ -5,8 +5,9 @@ import { ClassifyDamageInput, ClassifyDamageResult } from "../dto/diagnosis.dto"
 export class ClassifyDamage {
   constructor(private readonly tradeCatalog: TradeCatalogPort) {}
 
-  execute(input: ClassifyDamageInput): ClassifyDamageResult {
-    const classifier = new DamageClassifier(this.tradeCatalog.listClassifiableTrades());
+  async execute(input: ClassifyDamageInput): Promise<ClassifyDamageResult> {
+    const trades = await this.tradeCatalog.listClassifiableTrades();
+    const classifier = new DamageClassifier(trades);
     return classifier.classify(input.description);
   }
 }

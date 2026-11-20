@@ -9,5 +9,5 @@ export interface AvailableTechnician {
 }
 
 export interface TechnicianDirectoryPort {
-  listAvailableByTrade(tradeId: string): AvailableTechnician[];
+  listAvailableByTrade(tradeId: string): Promise<AvailableTechnician[]>;
 }

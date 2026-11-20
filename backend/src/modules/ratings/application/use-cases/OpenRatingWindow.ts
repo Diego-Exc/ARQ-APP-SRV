@@ -5,7 +5,7 @@ import { RatingRepository } from "../../domain/ports/RatingRepository";
 export class OpenRatingWindow {
   constructor(private readonly ratings: RatingRepository) {}
 
-  execute(requestId: string): void {
-    this.ratings.openWindow(requestId);
+  async execute(requestId: string): Promise<void> {
+    await this.ratings.openWindow(requestId);
   }
 }

@@ -4,7 +4,7 @@ import { TechnicianProfileRepository } from "../../domain/ports/TechnicianProfil
 export class ListAvailableTechniciansByTrade {
   constructor(private readonly profiles: TechnicianProfileRepository) {}
 
-  execute(tradeId: string): TechnicianProfile[] {
+  async execute(tradeId: string): Promise<TechnicianProfile[]> {
     return this.profiles.findAvailableByTrade(tradeId);
   }
 }

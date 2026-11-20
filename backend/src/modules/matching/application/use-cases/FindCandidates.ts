@@ -13,10 +13,10 @@ export class FindCandidates {
     private readonly offers: OfferRepository,
   ) {}
 
-  execute(input: FindCandidatesInput): FindCandidatesResult {
-    this.lifecycle.markMatching(input.requestId);
+  async execute(input: FindCandidatesInput): Promise<FindCandidatesResult> {
+    await this.lifecycle.markMatching(input.requestId);
 
-    const available = this.directory.listAvailableByTrade(input.tradeId);
+    const available = await this.directory.listAvailableByTrade(input.tradeId);
     if (available.length === 0) {
       throw Errors.notFound("No hay técnicos disponibles para este oficio en este momento");
     }
@@ -40,7 +40,7 @@ export class FindCandidates {
     }
 
     const ranked = rankCandidates(inRange);
-    this.offers.recordOffers(
+    await this.offers.recordOffers(
       input.tradeId,
       input.requestId,
       ranked.map((c) => ({ technicianId: c.technicianId, distanceKm: c.distanceKm, score: c.score })),

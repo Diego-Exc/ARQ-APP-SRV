@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { RegisterUser } from "../../application/use-cases/RegisterUser";
 import { LoginUser } from "../../application/use-cases/LoginUser";
+import { asyncHandler } from "../../../../shared/asyncHandler";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -18,15 +19,21 @@ const loginSchema = z.object({
 export function createIdentityRouter(registerUser: RegisterUser, loginUser: LoginUser): Router {
   const router = Router();
 
-  router.post("/auth/register", (req, res) => {
-    const result = registerUser.execute(registerSchema.parse(req.body));
-    res.status(201).json(result);
-  });
+  router.post(
+    "/auth/register",
+    asyncHandler(async (req, res) => {
+      const result = await registerUser.execute(registerSchema.parse(req.body));
+      res.status(201).json(result);
+    }),
+  );
 
-  router.post("/auth/login", (req, res) => {
-    const result = loginUser.execute(loginSchema.parse(req.body));
-    res.status(200).json(result);
-  });
+  router.post(
+    "/auth/login",
+    asyncHandler(async (req, res) => {
+      const result = await loginUser.execute(loginSchema.parse(req.body));
+      res.status(200).json(result);
+    }),
+  );
 
   return router;
 }

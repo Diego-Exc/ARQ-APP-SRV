@@ -11,8 +11,8 @@ export class RegisterUser {
     private readonly tokens: TokenSigner,
   ) {}
 
-  execute(input: RegisterInput): AuthResult {
-    if (this.users.findByEmail(input.email)) {
+  async execute(input: RegisterInput): Promise<AuthResult> {
+    if (await this.users.findByEmail(input.email)) {
       throw Errors.conflict("Ya existe una cuenta con ese correo");
     }
 
@@ -23,7 +23,7 @@ export class RegisterUser {
       name: input.name,
       role: input.role,
     };
-    this.users.save(user);
+    await this.users.save(user);
 
     const token = this.tokens.sign({ userId: user.id, role: user.role });
     return { token, userId: user.id, role: user.role, name: user.name };

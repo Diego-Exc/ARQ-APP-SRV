@@ -1,3 +1,3 @@
 export interface LifecycleTransitionPort {
-  markMatching(requestId: string): void;
+  markMatching(requestId: string): Promise<void>;
 }

@@ -75,6 +75,50 @@ export const diagnosis = {
   priceRangeMax: 85000,
 };
 
+export interface ClientNotification {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  time: string;
+  read: boolean;
+}
+
+export const clientNotifications: ClientNotification[] = [
+  {
+    id: "c1",
+    icon: "construct",
+    title: "Técnico en camino",
+    description: "Carlos Restrepo está llegando a tu dirección.",
+    time: "Hace 5 min",
+    read: false,
+  },
+  {
+    id: "c2",
+    icon: "card",
+    title: "Pago procesado",
+    description: "Tu pago de $76,500 fue aprobado exitosamente.",
+    time: "Hace 1 h",
+    read: false,
+  },
+  {
+    id: "c3",
+    icon: "star",
+    title: "Califica tu servicio",
+    description: "Cuéntanos cómo fue tu experiencia con el técnico.",
+    time: "Ayer",
+    read: true,
+  },
+  {
+    id: "c4",
+    icon: "pricetag",
+    title: "Cupón disponible",
+    description: "10% de descuento en tu próximo servicio de plomería.",
+    time: "Hace 3 días",
+    read: true,
+  },
+];
+
 export const paymentSummary = {
   laborCost: 60000,
   materialsCost: 22000,

@@ -4,7 +4,7 @@ import { DamageClassificationView, DamageClassifierPort } from "../../applicatio
 export class DiagnosisClassifierAdapter implements DamageClassifierPort {
   constructor(private readonly classifyDamage: ClassifyDamage) {}
 
-  classify(description: string): DamageClassificationView {
+  async classify(description: string): Promise<DamageClassificationView> {
     return this.classifyDamage.execute({ description });
   }
 }

@@ -4,6 +4,7 @@
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000/v1";
 
 let authToken: string | null = null;
+let currentName: string | null = null;
 
 export interface GeoPoint {
   lat: number;
@@ -65,26 +66,33 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  // Identity: sesión de demostración (en una app real el usuario se registra
-  // explícitamente; aquí se automatiza para no salir del flujo de las 6
-  // pantallas del MVP, ver README).
-  async ensureDemoSession(): Promise<void> {
-    if (authToken) return;
-    const email = "cliente.demo@arreglapues.app";
-    const password = "demo12345";
-    try {
-      const result = await request<{ token: string }>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
-      authToken = result.token;
-    } catch {
-      const result = await request<{ token: string }>("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ email, password, name: "Cliente Demo", role: "CLIENT" }),
-      });
-      authToken = result.token;
-    }
+  async login(email: string, password: string): Promise<{ name: string }> {
+    const result = await request<{ token: string; name: string }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    authToken = result.token;
+    currentName = result.name;
+    return { name: result.name };
+  },
+
+  async register(name: string, email: string, password: string): Promise<{ name: string }> {
+    const result = await request<{ token: string; name: string }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, name, role: "CLIENT" }),
+    });
+    authToken = result.token;
+    currentName = result.name;
+    return { name: result.name };
+  },
+
+  get currentUserName(): string | null {
+    return currentName;
+  },
+
+  logout(): void {
+    authToken = null;
+    currentName = null;
   },
 
   createRequest(description: string, location: GeoPoint, photos: string[] = []) {

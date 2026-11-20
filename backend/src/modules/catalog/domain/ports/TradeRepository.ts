@@ -1,6 +1,6 @@
 import { Trade } from "../entities/Trade";
 
 export interface TradeRepository {
-  findAll(): Trade[];
-  findById(id: string): Trade | undefined;
+  findAll(): Promise<Trade[]>;
+  findById(id: string): Promise<Trade | undefined>;
 }

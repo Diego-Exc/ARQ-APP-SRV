@@ -39,14 +39,15 @@ const SEED_TRADES: Trade[] = [
   },
 ];
 
+// Usado por tests unitarios; el backend real usa PgTradeRepository.
 export class InMemoryTradeRepository implements TradeRepository {
   private readonly trades = new Map(SEED_TRADES.map((trade) => [trade.id, trade]));
 
-  findAll(): Trade[] {
+  async findAll(): Promise<Trade[]> {
     return [...this.trades.values()];
   }
 
-  findById(id: string): Trade | undefined {
+  async findById(id: string): Promise<Trade | undefined> {
     return this.trades.get(id);
   }
 }

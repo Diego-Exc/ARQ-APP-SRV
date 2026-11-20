@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { formatCOP } from "../utils/format";
 import { categories } from "../data/mock";
 import { api } from "../api/client";
+import { CLIENT_LOCATION } from "../data/location";
 import type { RootStackParamList } from "../navigation/AppNavigator";
-
-const CLIENT_LOCATION = { lat: 6.2090, lng: -75.5679 };
 
 type Props = NativeStackScreenProps<RootStackParamList, "Diagnosis">;
 
-export function DiagnosisScreen({ navigation, route }: Props): JSX.Element {
+export function DiagnosisScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId, tradeId, tradeName, confidence, urgency, urgencyReason, description } = route.params;
   const [loading, setLoading] = useState(false);
 
@@ -47,24 +47,40 @@ export function DiagnosisScreen({ navigation, route }: Props): JSX.Element {
       </View>
 
       <View style={styles.confidenceRow}>
-        <Text style={styles.confidenceLabel}>Análisis IA completado</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Ionicons name="sparkles" size={16} color={colors.success} />
+          <Text style={styles.confidenceLabel}>Análisis IA completado</Text>
+        </View>
         <Text style={styles.confidenceValue}>{Math.round(confidence * 100)}% certeza</Text>
       </View>
 
       <View style={styles.urgencyCard}>
-        <Text style={styles.urgencyTitle}>{urgency}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Ionicons name="warning" size={16} color={colors.danger} />
+          <Text style={styles.urgencyTitle}>{urgency}</Text>
+        </View>
         <Text style={styles.urgencyReason}>{urgencyReason}</Text>
       </View>
 
       <View style={styles.tradeCard}>
-        <Text style={styles.tradeLabel}>Oficio recomendado</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Ionicons name="construct" size={16} color={colors.primary} />
+          <Text style={styles.tradeLabel}>Oficio recomendado</Text>
+        </View>
         <Text style={styles.tradeName}>{tradeName ?? "No identificado"}</Text>
         {tradeId ? <Text style={styles.tradePrice}>Desde {formatCOP(priceFrom)}</Text> : null}
         <Text style={styles.tradeHint}>Tarifa estimada mano de obra (mano de obra base)</Text>
       </View>
 
       <TouchableOpacity style={styles.ctaButton} onPress={handleSearchTechnicians} disabled={loading}>
-        {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Buscar técnicos verificados</Text>}
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <Ionicons name="search" size={18} color="#FFFFFF" />
+            <Text style={styles.ctaText}>Buscar técnicos verificados</Text>
+          </>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate("Home")}>
@@ -122,10 +138,13 @@ const styles = StyleSheet.create({
   tradePrice: { color: colors.textPrimary, fontWeight: "700", marginTop: 8 },
   tradeHint: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
   ctaButton: {
+    flexDirection: "row",
+    gap: 8,
     backgroundColor: colors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
   },
   ctaText: { color: "#FFFFFF", fontWeight: "700" },

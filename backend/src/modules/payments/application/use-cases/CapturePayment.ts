@@ -7,10 +7,10 @@ import { CapturePaymentInput } from "../dto/payments.dto";
 export class CapturePayment {
   constructor(private readonly payments: PaymentRepository) {}
 
-  execute(input: CapturePaymentInput): Payment {
+  async execute(input: CapturePaymentInput): Promise<Payment> {
     // Idempotencia obligatoria (escenario de calidad S2): un reintento con la
     // misma clave nunca genera un doble cobro.
-    const existing = this.payments.findByIdempotencyKey(input.idempotencyKey);
+    const existing = await this.payments.findByIdempotencyKey(input.idempotencyKey);
     if (existing) return existing;
 
     const payment: Payment = {
@@ -22,7 +22,7 @@ export class CapturePayment {
       status: "CAPTURED",
       capturedAt: new Date().toISOString(),
     };
-    this.payments.save(payment);
+    await this.payments.save(payment);
     eventBus.emit(DomainEvents.PaymentCaptured, payment);
     return payment;
   }

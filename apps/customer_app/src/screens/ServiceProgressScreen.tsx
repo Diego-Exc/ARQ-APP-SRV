@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { api } from "../api/client";
 import type { RootStackParamList } from "../navigation/AppNavigator";
@@ -17,7 +18,7 @@ const INITIAL_CHECKLIST: ChecklistItem[] = [
 
 type Props = NativeStackScreenProps<RootStackParamList, "ServiceProgress">;
 
-export function ServiceProgressScreen({ navigation, route }: Props): JSX.Element {
+export function ServiceProgressScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId, technicianId } = route.params;
   const [checklist] = useState(INITIAL_CHECKLIST);
   const [loading, setLoading] = useState(false);
@@ -39,9 +40,13 @@ export function ServiceProgressScreen({ navigation, route }: Props): JSX.Element
       <Text style={styles.subheader}>Reparación de fuga en desagüe y cambio de sifón</Text>
 
       <View style={styles.securityCard}>
+        <Ionicons name="lock-closed" size={18} color={colors.primary} />
         <Text style={styles.securityLabel}>Validación de Acceso Seguro</Text>
         <Text style={styles.pin}>8 4 9 2</Text>
-        <Text style={styles.securityVerified}>Entrada verificada</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+          <Text style={styles.securityVerified}>Entrada verificada</Text>
+        </View>
       </View>
 
       <Text style={styles.sectionTitle}>
@@ -49,13 +54,22 @@ export function ServiceProgressScreen({ navigation, route }: Props): JSX.Element
       </Text>
       {checklist.map((item) => (
         <View key={item.id} style={styles.checklistRow}>
-          <View style={[styles.checkbox, item.done && styles.checkboxDone]} />
+          <View style={[styles.checkbox, item.done && styles.checkboxDone]}>
+            {item.done ? <Ionicons name="checkmark" size={12} color="#FFFFFF" /> : null}
+          </View>
           <Text style={[styles.checklistLabel, item.done && styles.checklistLabelDone]}>{item.label}</Text>
         </View>
       ))}
 
       <TouchableOpacity style={styles.ctaButton} onPress={handleFinish} disabled={loading}>
-        {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Ver resumen y pago</Text>}
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <Ionicons name="receipt" size={18} color="#FFFFFF" />
+            <Text style={styles.ctaText}>Ver resumen y pago</Text>
+          </>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -87,15 +101,20 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
     marginRight: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxDone: { backgroundColor: colors.success, borderColor: colors.success },
   checklistLabel: { color: colors.textPrimary, flex: 1 },
   checklistLabelDone: { color: colors.textSecondary, textDecorationLine: "line-through" },
   ctaButton: {
+    flexDirection: "row",
+    gap: 8,
     backgroundColor: colors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
+    justifyContent: "center",
     marginTop: 20,
   },
   ctaText: { color: "#FFFFFF", fontWeight: "700" },

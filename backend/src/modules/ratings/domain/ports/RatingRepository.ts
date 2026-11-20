@@ -1,8 +1,8 @@
 import { Rating } from "../entities/Rating";
 
 export interface RatingRepository {
-  save(rating: Rating): void;
-  findByRequestId(requestId: string): Rating | undefined;
-  openWindow(requestId: string): void;
-  isWindowOpen(requestId: string): boolean;
+  save(rating: Rating): Promise<void>;
+  findByRequestId(requestId: string): Promise<Rating | undefined>;
+  openWindow(requestId: string): Promise<void>;
+  isWindowOpen(requestId: string): Promise<boolean>;
 }

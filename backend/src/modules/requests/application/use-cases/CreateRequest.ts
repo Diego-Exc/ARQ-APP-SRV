@@ -11,10 +11,10 @@ export class CreateRequest {
     private readonly lifecycle: LifecyclePort,
   ) {}
 
-  execute(input: CreateRequestInput): CreateRequestResult {
+  async execute(input: CreateRequestInput): Promise<CreateRequestResult> {
     // Escenario de calidad R1: si el clasificador falla, se degrada a
     // selección manual en vez de bloquear la creación de la solicitud.
-    const classification = this.safeClassify(input.description);
+    const classification = await this.safeClassify(input.description);
 
     const request = {
       id: newId("req"),
@@ -28,8 +28,8 @@ export class CreateRequest {
       status: "SUBMITTED" as const,
       createdAt: new Date().toISOString(),
     };
-    this.requests.save(request);
-    this.lifecycle.initialize(request.id);
+    await this.requests.save(request);
+    await this.lifecycle.initialize(request.id);
 
     return {
       requestId: request.id,
@@ -41,9 +41,9 @@ export class CreateRequest {
     };
   }
 
-  private safeClassify(description: string) {
+  private async safeClassify(description: string) {
     try {
-      return this.classifier.classify(description);
+      return await this.classifier.classify(description);
     } catch (error) {
       console.error("[requests] clasificación de IA no disponible, se degrada a manual", error);
       return {

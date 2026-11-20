@@ -17,8 +17,8 @@ export class SubmitRating {
     private readonly lifecycle: LifecycleRatedPort,
   ) {}
 
-  execute(input: SubmitRatingInput): Rating {
-    if (!this.ratings.isWindowOpen(input.requestId)) {
+  async execute(input: SubmitRatingInput): Promise<Rating> {
+    if (!(await this.ratings.isWindowOpen(input.requestId))) {
       throw Errors.conflict("La calificación solo se habilita tras confirmar el pago del servicio");
     }
     if (input.stars < 1 || input.stars > 5) {
@@ -33,8 +33,8 @@ export class SubmitRating {
       comment: input.comment ?? null,
       createdAt: new Date().toISOString(),
     };
-    this.ratings.save(rating);
-    this.lifecycle.markRated(input.requestId);
+    await this.ratings.save(rating);
+    await this.lifecycle.markRated(input.requestId);
     return rating;
   }
 }

@@ -1,6 +1,6 @@
 import { ServiceLifecycleRecord } from "../entities/ServiceStateMachine";
 
 export interface ServiceLifecycleRepository {
-  get(requestId: string): ServiceLifecycleRecord | undefined;
-  save(record: ServiceLifecycleRecord): void;
+  get(requestId: string): Promise<ServiceLifecycleRecord | undefined>;
+  save(record: ServiceLifecycleRecord): Promise<void>;
 }

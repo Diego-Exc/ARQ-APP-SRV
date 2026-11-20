@@ -1,17 +1,16 @@
 import { OfferRepository, TechnicianOffer } from "../../domain/ports/OfferRepository";
 
 // Registro simple de "ofertas" de matching por técnico, para que la app Pro
-// pueda listar las solicitudes que le fueron ofrecidas (ventana de ~45 s de
-// la decisión de cierre del MVP). No reemplaza la máquina de estados de
-// Service Lifecycle, que sigue siendo la fuente de verdad del servicio.
+// pueda listar las solicitudes que le fueron ofrecidas. Usado por tests
+// unitarios; el backend real usa PgOfferRepository.
 export class InMemoryOfferRepository implements OfferRepository {
   private readonly offersByTechnician = new Map<string, TechnicianOffer[]>();
 
-  recordOffers(
+  async recordOffers(
     tradeId: string,
     requestId: string,
     offers: { technicianId: string; distanceKm: number; score: number }[],
-  ): void {
+  ): Promise<void> {
     const offeredAt = new Date().toISOString();
     for (const offer of offers) {
       const existing = this.offersByTechnician.get(offer.technicianId) ?? [];
@@ -21,11 +20,11 @@ export class InMemoryOfferRepository implements OfferRepository {
     }
   }
 
-  listForTechnician(technicianId: string): TechnicianOffer[] {
+  async listForTechnician(technicianId: string): Promise<TechnicianOffer[]> {
     return this.offersByTechnician.get(technicianId) ?? [];
   }
 
-  clearRequest(requestId: string): void {
+  async clearRequest(requestId: string): Promise<void> {
     for (const [technicianId, offers] of this.offersByTechnician) {
       this.offersByTechnician.set(technicianId, offers.filter((o) => o.requestId !== requestId));
     }

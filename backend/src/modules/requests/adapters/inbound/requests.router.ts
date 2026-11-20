@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { CreateRequest } from "../../application/use-cases/CreateRequest";
 import { GetRequest } from "../../application/use-cases/GetRequest";
+import { asyncHandler } from "../../../../shared/asyncHandler";
 
 const createRequestSchema = z.object({
   description: z.string().min(1),
@@ -12,15 +13,21 @@ const createRequestSchema = z.object({
 export function createRequestsRouter(createRequest: CreateRequest, getRequest: GetRequest): Router {
   const router = Router();
 
-  router.post("/requests", (req, res) => {
-    const input = createRequestSchema.parse(req.body);
-    const result = createRequest.execute({ ...input, clientId: req.auth!.userId });
-    res.status(201).json(result);
-  });
+  router.post(
+    "/requests",
+    asyncHandler(async (req, res) => {
+      const input = createRequestSchema.parse(req.body);
+      const result = await createRequest.execute({ ...input, clientId: req.auth!.userId });
+      res.status(201).json(result);
+    }),
+  );
 
-  router.get("/requests/:id", (req, res) => {
-    res.json(getRequest.execute(req.params.id));
-  });
+  router.get(
+    "/requests/:id",
+    asyncHandler(async (req, res) => {
+      res.json(await getRequest.execute(req.params.id));
+    }),
+  );
 
   return router;
 }

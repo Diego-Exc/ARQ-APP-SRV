@@ -1,23 +1,24 @@
 import { Rating } from "../../domain/entities/Rating";
 import { RatingRepository } from "../../domain/ports/RatingRepository";
 
+// Usado por tests unitarios; el backend real usa PgRatingRepository.
 export class InMemoryRatingRepository implements RatingRepository {
   private readonly ratings = new Map<string, Rating>();
   private readonly openWindows = new Set<string>();
 
-  save(rating: Rating): void {
+  async save(rating: Rating): Promise<void> {
     this.ratings.set(rating.requestId, rating);
   }
 
-  findByRequestId(requestId: string): Rating | undefined {
+  async findByRequestId(requestId: string): Promise<Rating | undefined> {
     return this.ratings.get(requestId);
   }
 
-  openWindow(requestId: string): void {
+  async openWindow(requestId: string): Promise<void> {
     this.openWindows.add(requestId);
   }
 
-  isWindowOpen(requestId: string): boolean {
+  async isWindowOpen(requestId: string): Promise<boolean> {
     return this.openWindows.has(requestId);
   }
 }

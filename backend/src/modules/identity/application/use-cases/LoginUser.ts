@@ -10,8 +10,8 @@ export class LoginUser {
     private readonly tokens: TokenSigner,
   ) {}
 
-  execute(input: LoginInput): AuthResult {
-    const user = this.users.findByEmail(input.email);
+  async execute(input: LoginInput): Promise<AuthResult> {
+    const user = await this.users.findByEmail(input.email);
     if (!user || !bcrypt.compareSync(input.password, user.passwordHash)) {
       throw Errors.unauthorized("Correo o contraseña incorrectos");
     }

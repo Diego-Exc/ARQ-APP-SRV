@@ -4,7 +4,7 @@ import { TradeRepository } from "../../domain/ports/TradeRepository";
 export class ListTrades {
   constructor(private readonly trades: TradeRepository) {}
 
-  execute(): Trade[] {
+  async execute(): Promise<Trade[]> {
     return this.trades.findAll();
   }
 }

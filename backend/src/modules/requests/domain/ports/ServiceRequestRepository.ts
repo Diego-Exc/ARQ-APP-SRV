@@ -1,7 +1,7 @@
 import { ServiceRequest } from "../entities/ServiceRequest";
 
 export interface ServiceRequestRepository {
-  save(request: ServiceRequest): void;
-  findById(id: string): ServiceRequest | undefined;
-  findByClientId(clientId: string): ServiceRequest[];
+  save(request: ServiceRequest): Promise<void>;
+  findById(id: string): Promise<ServiceRequest | undefined>;
+  findByClientId(clientId: string): Promise<ServiceRequest[]>;
 }

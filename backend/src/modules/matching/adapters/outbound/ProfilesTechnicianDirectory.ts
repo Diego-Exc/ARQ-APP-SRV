@@ -6,8 +6,9 @@ import { AvailableTechnician, TechnicianDirectoryPort } from "../../application/
 export class ProfilesTechnicianDirectory implements TechnicianDirectoryPort {
   constructor(private readonly listAvailable: ListAvailableTechniciansByTrade) {}
 
-  listAvailableByTrade(tradeId: string): AvailableTechnician[] {
-    return this.listAvailable.execute(tradeId).map((profile) => ({
+  async listAvailableByTrade(tradeId: string): Promise<AvailableTechnician[]> {
+    const profiles = await this.listAvailable.execute(tradeId);
+    return profiles.map((profile) => ({
       id: profile.id,
       name: profile.name,
       location: profile.location,
