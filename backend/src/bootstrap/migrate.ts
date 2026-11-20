@@ -124,14 +124,33 @@ export async function runMigrations(bcryptHash: (plain: string) => string): Prom
   }
 
   const demoUsers = [
-    { id: "tech-1", email: "tecnico1.demo@arreglapues.app", name: "Carlos Restrepo M.", role: "PRO" },
-    { id: "tech-4", email: "tecnico4.demo@arreglapues.app", name: "Andrea Zapata Ríos", role: "PRO" },
+    { id: "tech-1", email: "tecnico1.demo@arreglapues.app", name: "Carlos Restrepo M.", role: "PRO", password: "demo12345" },
+    { id: "tech-4", email: "tecnico4.demo@arreglapues.app", name: "Andrea Zapata Ríos", role: "PRO", password: "demo12345" },
   ];
   for (const user of demoUsers) {
     await pool.query(
       `INSERT INTO users (id, email, password_hash, name, role) VALUES ($1,$2,$3,$4,$5)
        ON CONFLICT (id) DO NOTHING`,
-      [user.id, user.email, bcryptHash("demo12345"), user.name, user.role],
+      [user.id, user.email, bcryptHash(user.password), user.name, user.role],
+    );
+  }
+
+  // Credenciales cortas para la demo en vivo (ver tech-3 en SEED_TECHNICIANS).
+  // Nunca se hardcodean en el repo público: solo se siembran si Render tiene
+  // configuradas estas variables de entorno.
+  const liveDemoUsers = [
+    { id: "tech-3", email: "julian@arreglapues.app", name: "Julián Ospina Duque", role: "PRO", password: process.env.DEMO_JULIAN_PASSWORD },
+    { id: "client-diego-demo", email: "diego@arreglapues.app", name: "Diego", role: "CLIENT", password: process.env.DEMO_DIEGO_PASSWORD },
+  ];
+  for (const user of liveDemoUsers) {
+    if (!user.password) {
+      console.warn(`[migrate] omitiendo usuario demo ${user.email}: falta la variable de entorno de su contraseña`);
+      continue;
+    }
+    await pool.query(
+      `INSERT INTO users (id, email, password_hash, name, role) VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (id) DO NOTHING`,
+      [user.id, user.email, bcryptHash(user.password), user.name, user.role],
     );
   }
 }
