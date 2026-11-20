@@ -19,6 +19,22 @@ interface Props {
   style?: object;
 }
 
+const GREETINGS = [
+  "¿Qué necesita, mijo?",
+  "¿En qué lo ayudo, papito?",
+  "Cuénteme qué se dañó, parcero",
+  "¿Qué fue lo que se le rompió, pues?",
+  "Hágale, dígame qué pasó",
+  "¿Qué se le dañó hoy, caballero?",
+  "Pregúnteme, que para eso estoy, ome",
+  "Dele, cuénteme ese problemita",
+];
+
+function randomGreeting(exclude?: string): string {
+  const options = exclude ? GREETINGS.filter((g) => g !== exclude) : GREETINGS;
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 // Robot dibujado en vectores (no emoji, no placeholder): sombrero
 // antioqueño, bigote y cara metálica. "Don Repuesto", la mascota del
 // diagnóstico asistido.
@@ -60,6 +76,7 @@ function RobotIllustration({ size = 56 }: { size?: number }): React.JSX.Element 
 export function PaisaBot({ onSelect, style }: Props): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
+  const [greeting, setGreeting] = useState(() => randomGreeting());
   const bounce = useRef(new Animated.Value(0)).current;
   const greetingOpacity = useRef(new Animated.Value(0)).current;
 
@@ -71,23 +88,40 @@ export function PaisaBot({ onSelect, style }: Props): React.JSX.Element {
       ]),
     );
     loop.start();
+    return () => loop.stop();
+  }, [bounce]);
 
-    // Saluda una sola vez al entrar y se esfuma solo, en vez de quedar un
-    // texto fijo pegado todo el tiempo.
-    const showTimer = setTimeout(() => {
-      setShowGreeting(true);
-      Animated.sequence([
-        Animated.timing(greetingOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.delay(3200),
-        Animated.timing(greetingOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-      ]).start(() => setShowGreeting(false));
-    }, 900);
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    // El saludo aparece cada cierto tiempo con una frase distinta cada vez
+    // (no un texto fijo pegado todo el rato), para que se sienta mas natural.
+    function cycle(delay: number) {
+      timer = setTimeout(() => {
+        if (cancelled || open) {
+          cycle(4000);
+          return;
+        }
+        setGreeting((prev) => randomGreeting(prev));
+        setShowGreeting(true);
+        Animated.sequence([
+          Animated.timing(greetingOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.delay(3400),
+          Animated.timing(greetingOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+        ]).start(() => {
+          setShowGreeting(false);
+          cycle(14000);
+        });
+      }, delay);
+    }
+    cycle(900);
 
     return () => {
-      loop.stop();
-      clearTimeout(showTimer);
+      cancelled = true;
+      clearTimeout(timer);
     };
-  }, [bounce, greetingOpacity]);
+  }, [greetingOpacity, open]);
 
   const translateY = bounce.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
 
@@ -101,7 +135,7 @@ export function PaisaBot({ onSelect, style }: Props): React.JSX.Element {
       <View style={[styles.floatingWrapper, style]}>
         {showGreeting ? (
           <Animated.View style={[styles.bubble, { opacity: greetingOpacity }]}>
-            <Text style={styles.bubbleText}>¿Qué necesita, mijo?</Text>
+            <Text style={styles.bubbleText}>{greeting}</Text>
           </Animated.View>
         ) : null}
         <Animated.View style={{ transform: [{ translateY }] }}>

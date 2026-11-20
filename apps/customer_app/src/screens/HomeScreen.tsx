@@ -11,8 +11,8 @@ import {
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
-import { categories } from "../data/mock";
-import { clientNotifications } from "../data/mock";
+import { categories, clientNotifications, TECHNICIAN_DETAILS } from "../data/mock";
+import { formatCOP } from "../utils/format";
 import { api, Candidate, TechnicianProfile } from "../api/client";
 import { CLIENT_LOCATION, regionForPoints } from "../data/location";
 import { ServiceMap, MapMarker } from "../components/ServiceMap";
@@ -47,6 +47,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [sheetCollapsed, setSheetCollapsed] = useState(false);
 
   const unread = clientNotifications.filter((n) => !n.read).length;
   const firstName = (api.currentUserName ?? "Cliente").split(" ")[0];
@@ -115,6 +116,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       const matched = await api.findCandidates(result.requestId, result.tradeId, CLIENT_LOCATION);
       setCandidates(matched.candidates);
       setSelectedId(matched.candidates[0]?.technicianId ?? null);
+      setSheetCollapsed(false);
       setPhase("results");
     } catch (error) {
       setErrorMessage((error as Error).message || "No se pudo diagnosticar. Intenta de nuevo.");
@@ -251,8 +253,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           </ScrollView>
         </View>
       ) : (
-        <View style={[styles.sheet, styles.resultsSheet]}>
-          <View style={styles.sheetHandle} />
+        <View style={[styles.sheet, styles.resultsSheet, sheetCollapsed && styles.resultsSheetCollapsed]}>
+          <TouchableOpacity onPress={() => setSheetCollapsed((v) => !v)} style={styles.sheetHandleTouchable}>
+            <View style={styles.sheetHandle} />
+          </TouchableOpacity>
           <View style={styles.resultsHeader}>
             <TouchableOpacity onPress={handleBackToBrowse} style={styles.backButton}>
               <Ionicons name="arrow-back" size={18} color={colors.textPrimary} />
@@ -260,63 +264,96 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             <View style={{ flex: 1 }}>
               <Text style={styles.resultsTitle}>{diagnosis?.tradeName ?? "Técnicos disponibles"}</Text>
               <Text style={styles.resultsSubtitle}>
-                {Math.round((diagnosis?.confidence ?? 0) * 100)}% certeza · Urgencia {diagnosis?.urgency}
+                {candidates.length} profesionales · {Math.round((diagnosis?.confidence ?? 0) * 100)}% certeza · {diagnosis?.urgency}
               </Text>
             </View>
+            <TouchableOpacity onPress={() => setSheetCollapsed((v) => !v)} style={styles.collapseButton}>
+              <Ionicons name={sheetCollapsed ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
-          {errorMessage ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={14} color="#FFFFFF" />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : null}
-
-          <ScrollView style={styles.candidateList} showsVerticalScrollIndicator={false}>
-            {candidates.map((candidate, index) => (
-              <TouchableOpacity
-                key={candidate.technicianId}
-                style={[styles.candidateCard, candidate.technicianId === selectedId && styles.candidateCardSelected]}
-                onPress={() => setSelectedId(candidate.technicianId)}
-              >
-                {index === 0 ? (
-                  <View style={styles.recommendedRow}>
-                    <Ionicons name="ribbon" size={12} color={colors.accent} />
-                    <Text style={styles.recommendedText}>RECOMENDADO</Text>
-                  </View>
-                ) : null}
-                <View style={styles.candidateRow}>
-                  <View style={styles.candidateAvatar}>
-                    <Ionicons name="person" size={20} color={colors.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.candidateName}>{candidate.name}</Text>
-                    <View style={styles.candidateMeta}>
-                      <Ionicons name="star" size={12} color="#F59E0B" />
-                      <Text style={styles.candidateMetaText}>{candidate.rating.toFixed(2)}</Text>
-                      <Text style={styles.candidateMetaText}>· {candidate.distanceKm} km</Text>
-                    </View>
-                  </View>
-                  <Ionicons
-                    name={candidate.technicianId === selectedId ? "radio-button-on" : "radio-button-off"}
-                    size={20}
-                    color={candidate.technicianId === selectedId ? colors.accent : colors.textSecondary}
-                  />
+          {!sheetCollapsed ? (
+            <>
+              {errorMessage ? (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle" size={14} color="#FFFFFF" />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+              ) : null}
 
-          <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={confirming || !selectedId}>
-            {confirming ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                <Text style={styles.confirmButtonText}>Confirmar y solicitar técnico</Text>
-              </>
-            )}
-          </TouchableOpacity>
+              <ScrollView style={styles.candidateList} showsVerticalScrollIndicator={false}>
+                {candidates.map((candidate, index) => {
+                  const detail = TECHNICIAN_DETAILS[candidate.technicianId];
+                  const verified = byId.get(candidate.technicianId)?.verified ?? false;
+                  const selected = candidate.technicianId === selectedId;
+                  return (
+                    <TouchableOpacity
+                      key={candidate.technicianId}
+                      style={[styles.candidateCard, selected && styles.candidateCardSelected]}
+                      onPress={() => setSelectedId(candidate.technicianId)}
+                    >
+                      <View style={styles.candidateTopRow}>
+                        {index === 0 ? (
+                          <View style={styles.recommendedRow}>
+                            <Ionicons name="ribbon" size={12} color={colors.accent} />
+                            <Text style={styles.recommendedText}>RECOMENDADO</Text>
+                          </View>
+                        ) : (
+                          <View />
+                        )}
+                        {detail ? <Text style={styles.priceText}>Desde {formatCOP(detail.estimatedPrice)}</Text> : null}
+                      </View>
+
+                      <View style={styles.candidateRow}>
+                        <View style={styles.candidateAvatar}>
+                          <Ionicons name="person" size={22} color={colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.nameRow}>
+                            <Text style={styles.candidateName}>{candidate.name}</Text>
+                            {verified ? <Ionicons name="checkmark-circle" size={14} color={colors.success} /> : null}
+                          </View>
+                          {detail ? <Text style={styles.candidateTitle}>{detail.title}</Text> : null}
+                          <View style={styles.candidateMeta}>
+                            <Ionicons name="star" size={12} color="#F59E0B" />
+                            <Text style={styles.candidateMetaText}>{candidate.rating.toFixed(2)}</Text>
+                            {detail ? <Text style={styles.candidateMetaText}>({detail.reviews})</Text> : null}
+                            <Text style={styles.candidateMetaText}>· {candidate.distanceKm} km</Text>
+                            {detail ? (
+                              <Text style={styles.candidateMetaText}>· {detail.experienceYears} años exp.</Text>
+                            ) : null}
+                          </View>
+                        </View>
+                        <Ionicons
+                          name={selected ? "radio-button-on" : "radio-button-off"}
+                          size={20}
+                          color={selected ? colors.accent : colors.textSecondary}
+                        />
+                      </View>
+
+                      {selected && detail ? (
+                        <View style={styles.candidateBioBox}>
+                          <Ionicons name="ribbon-outline" size={13} color={colors.textSecondary} />
+                          <Text style={styles.candidateBioText}>{detail.specialty} — {detail.bio}</Text>
+                        </View>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={confirming || !selectedId}>
+                {confirming ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                    <Text style={styles.confirmButtonText}>Confirmar y solicitar técnico</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : null}
         </View>
       )}
     </View>
@@ -405,7 +442,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   quickLabel: { fontSize: 12, fontWeight: "700", color: colors.textSecondary, marginBottom: 8, marginTop: 4 },
-  resultsSheet: { top: "26%", bottom: 0, display: "flex" },
+  resultsSheet: { top: "42%", bottom: 0, display: "flex", overflow: "hidden" },
+  resultsSheetCollapsed: { top: "85%" },
+  sheetHandleTouchable: { paddingVertical: 4 },
   sheetHandle: {
     width: 40,
     height: 4,
@@ -480,6 +519,16 @@ const styles = StyleSheet.create({
   },
   resultsTitle: { fontSize: 16, fontWeight: "800", color: colors.primary },
   resultsSubtitle: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  collapseButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   candidateList: { flex: 1 },
   candidateCard: {
     backgroundColor: colors.surface,
@@ -490,8 +539,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   candidateCardSelected: { borderColor: colors.accent, borderWidth: 2 },
-  recommendedRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
+  candidateTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  recommendedRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   recommendedText: { color: colors.accent, fontWeight: "800", fontSize: 10 },
+  priceText: { color: colors.success, fontWeight: "800", fontSize: 12 },
   candidateRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   candidateAvatar: {
     width: 38,
@@ -501,9 +552,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   candidateName: { fontWeight: "700", color: colors.textPrimary, fontSize: 14 },
-  candidateMeta: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 },
+  candidateTitle: { fontSize: 11, color: colors.textSecondary, marginTop: 1 },
+  candidateMeta: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3, flexWrap: "wrap" },
   candidateMetaText: { fontSize: 11, color: colors.textSecondary },
+  candidateBioBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+  },
+  candidateBioText: { flex: 1, fontSize: 11, color: colors.textSecondary, lineHeight: 16 },
   confirmButton: {
     flexDirection: "row",
     gap: 8,

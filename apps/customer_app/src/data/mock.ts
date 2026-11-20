@@ -63,6 +63,70 @@ export const technicians: Technician[] = [
   },
 ];
 
+export interface TechnicianDetail {
+  title: string;
+  experienceYears: number;
+  specialty: string;
+  bio: string;
+  estimatedPrice: number;
+  reviews: number;
+}
+
+// Enriquecimiento local (ADR-0005: simulado) para los 6 técnicos sembrados
+// en el backend (ver backend/src/bootstrap/migrate.ts) — el backend no
+// modela título/experiencia/bio, pero sí rating, distancia y verificación
+// reales que se combinan con esto en pantalla.
+export const TECHNICIAN_DETAILS: Record<string, TechnicianDetail> = {
+  "tech-1": {
+    title: "Técnico certificado SENA en Plomería",
+    experienceYears: 14,
+    specialty: "Detección de fugas y tuberías de presión",
+    bio: "Especialista en fugas difíciles de encontrar, sin romper piso ni pared.",
+    estimatedPrice: 60000,
+    reviews: 318,
+  },
+  "tech-2": {
+    title: "Técnico en Instalaciones Sanitarias",
+    experienceYears: 9,
+    specialty: "Urgencias 24/7 · Redes sanitarias",
+    bio: "Atiende urgencias a cualquier hora, incluso festivos.",
+    estimatedPrice: 55000,
+    reviews: 154,
+  },
+  "tech-3": {
+    title: "Técnico certificado SENA en Plomería",
+    experienceYears: 7,
+    specialty: "Destapes sin rompimiento",
+    bio: "Usa cámara de inspección para destapar sin dañar la tubería.",
+    estimatedPrice: 50000,
+    reviews: 95,
+  },
+  "tech-4": {
+    title: "Tecnólogo en Electricidad Industrial",
+    experienceYears: 11,
+    specialty: "Instalaciones eléctricas residenciales",
+    bio: "Diagnóstico de cortos y tableros eléctricos con equipo certificado.",
+    estimatedPrice: 58000,
+    reviews: 201,
+  },
+  "tech-5": {
+    title: "Técnico en Cerrajería Profesional",
+    experienceYears: 16,
+    specialty: "Cerraduras de seguridad y apertura sin daño",
+    bio: "Abre puertas sin dañar la cerradura ni la puerta, en minutos.",
+    estimatedPrice: 48000,
+    reviews: 132,
+  },
+  "tech-6": {
+    title: "Técnico en Acabados y Pintura",
+    experienceYears: 10,
+    specialty: "Pintura, drywall y resanes",
+    bio: "Deja las paredes como nuevas, con acabado liso profesional.",
+    estimatedPrice: 62000,
+    reviews: 64,
+  },
+};
+
 export const diagnosis = {
   reportedAt: "Hoy 10:42 AM",
   description:
