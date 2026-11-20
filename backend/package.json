@@ -8,7 +8,7 @@
     "dev": "tsx watch src/bootstrap/index.ts",
     "start": "tsx src/bootstrap/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test \"src/modules/*/tests/*.test.ts\""
+    "test": "node --import tsx --test src/modules/*/tests/*.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
