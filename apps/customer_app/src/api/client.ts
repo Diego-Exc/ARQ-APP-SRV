@@ -6,6 +6,35 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000/v1";
 let authToken: string | null = null;
 let currentName: string | null = null;
 
+// Persistencia simple de sesión (solo web): sin esto, recargar la página
+// perdía el token por completo aunque la UI siguiera mostrando el Home.
+const STORAGE_KEY = "arreglapues.session";
+const hasWebStorage = typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+
+function persistSession(): void {
+  if (!hasWebStorage) return;
+  if (authToken && currentName) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: authToken, name: currentName }));
+  } else {
+    window.localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+export function restoreSession(): boolean {
+  if (!hasWebStorage) return false;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw) as { token: string; name: string };
+    authToken = parsed.token;
+    currentName = parsed.name;
+    return true;
+  } catch {
+    window.localStorage.removeItem(STORAGE_KEY);
+    return false;
+  }
+}
+
 export interface GeoPoint {
   lat: number;
   lng: number;
@@ -38,6 +67,17 @@ export interface LifecycleState {
   state: string;
   assignedTechnicianId: string | null;
   updatedAt: string;
+}
+
+export interface TechnicianProfile {
+  id: string;
+  name: string;
+  trades: string[];
+  location: GeoPoint;
+  rating: number;
+  reviews: number;
+  verified: boolean;
+  online: boolean;
 }
 
 export interface PricingBreakdown {
@@ -73,6 +113,7 @@ export const api = {
     });
     authToken = result.token;
     currentName = result.name;
+    persistSession();
     return { name: result.name };
   },
 
@@ -83,6 +124,7 @@ export const api = {
     });
     authToken = result.token;
     currentName = result.name;
+    persistSession();
     return { name: result.name };
   },
 
@@ -93,6 +135,11 @@ export const api = {
   logout(): void {
     authToken = null;
     currentName = null;
+    persistSession();
+  },
+
+  listTechnicians() {
+    return request<TechnicianProfile[]>("/technicians");
   },
 
   createRequest(description: string, location: GeoPoint, photos: string[] = []) {

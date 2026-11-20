@@ -1,67 +1,74 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../theme/colors";
-import type { GeoPoint } from "../api/client";
+
+export interface MapMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}
+
+export interface MapRegion {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
 
 interface Props {
-  home: GeoPoint;
-  technician: GeoPoint;
+  markers: MapMarker[];
+  region: MapRegion;
   style?: object;
 }
 
-// react-native-maps es un módulo nativo (iOS/Android); en web se reemplaza
-// por esta vista ilustrativa con las mismas coordenadas, para que la demo en
-// navegador no dependa de un mapa embebido real.
-export function ServiceMap({ home, technician, style }: Props): React.JSX.Element {
+// react-native-maps es nativo (iOS/Android); en web se posicionan los
+// marcadores proporcionalmente dentro de un lienzo con la misma región,
+// para mantener la misma composición visual sin un mapa real embebido.
+export function ServiceMap({ markers, region, style }: Props): React.JSX.Element {
+  const minLat = region.latitude - region.latitudeDelta / 2;
+  const minLng = region.longitude - region.longitudeDelta / 2;
+
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.grid} />
-      <View style={[styles.pin, styles.pinHome, { left: "35%", top: "60%" }]}>
-        <Ionicons name="home" size={16} color="#FFFFFF" />
-      </View>
-      <View style={[styles.pin, styles.pinTechnician, { left: "60%", top: "35%" }]}>
-        <Ionicons name="construct" size={16} color="#FFFFFF" />
-      </View>
-      <View style={styles.coordsBox}>
-        <Text style={styles.coordsText}>
-          Tú: {home.lat.toFixed(4)}, {home.lng.toFixed(4)}
-        </Text>
-        <Text style={styles.coordsText}>
-          Técnico: {technician.lat.toFixed(4)}, {technician.lng.toFixed(4)}
-        </Text>
-      </View>
+      <View style={styles.gridRow} />
+      <View style={[styles.gridRow, { top: "50%" }]} />
+      <View style={styles.gridCol} />
+      <View style={[styles.gridCol, { left: "50%" }]} />
+      {markers.map((marker) => {
+        const leftPct = ((marker.lng - minLng) / region.longitudeDelta) * 100;
+        const topPct = (1 - (marker.lat - minLat) / region.latitudeDelta) * 100;
+        return (
+          <View
+            key={marker.id}
+            style={[
+              styles.pin,
+              { backgroundColor: marker.color, left: `${leftPct}%`, top: `${topPct}%` },
+            ]}
+          >
+            <Ionicons name={marker.icon} size={14} color="#FFFFFF" />
+          </View>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#DCE9F7",
-    overflow: "hidden",
-  },
-  grid: { ...StyleSheet.absoluteFill, opacity: 0.4 },
+  container: { backgroundColor: "#DCE9F7", overflow: "hidden" },
+  gridRow: { position: "absolute", left: 0, right: 0, top: "25%", height: 1, backgroundColor: "rgba(30,58,95,0.08)" },
+  gridCol: { position: "absolute", top: 0, bottom: 0, left: "25%", width: 1, backgroundColor: "rgba(30,58,95,0.08)" },
   pin: {
     position: "absolute",
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: "#FFFFFF",
-    marginLeft: -15,
-    marginTop: -15,
+    marginLeft: -14,
+    marginTop: -14,
   },
-  pinHome: { backgroundColor: colors.primary },
-  pinTechnician: { backgroundColor: colors.accent },
-  coordsBox: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    borderRadius: 8,
-    padding: 6,
-  },
-  coordsText: { fontSize: 10, color: colors.textSecondary },
 });
