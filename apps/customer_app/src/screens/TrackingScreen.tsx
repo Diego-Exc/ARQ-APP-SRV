@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { ServiceMap } from "../components/ServiceMap";
 import { api } from "../api/client";
-import { CLIENT_LOCATION, lerpPoint, technicianStartPoint } from "../data/location";
+import { CLIENT_LOCATION, lerpPoint, regionForPoints, technicianStartPoint } from "../data/location";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const STEPS = [
@@ -34,6 +34,7 @@ export function TrackingScreen({ navigation, route }: Props): React.JSX.Element 
   const technicianOrigin = useMemo(() => technicianStartPoint(distanceKm), [distanceKm]);
   const progress = PROGRESS_BY_STATE[state] ?? 0;
   const technicianPosition = lerpPoint(technicianOrigin, CLIENT_LOCATION, progress);
+  const region = useMemo(() => regionForPoints([CLIENT_LOCATION, technicianOrigin]), [technicianOrigin]);
 
   useEffect(() => {
     const close = api.openServiceSocket(requestId, (lifecycle) => setState(lifecycle.state));
@@ -58,7 +59,14 @@ export function TrackingScreen({ navigation, route }: Props): React.JSX.Element 
   return (
     <View style={styles.container}>
       <View style={styles.mapWrapper}>
-        <ServiceMap home={CLIENT_LOCATION} technician={technicianPosition} style={styles.map} />
+        <ServiceMap
+          region={region}
+          style={styles.map}
+          markers={[
+            { id: "home", lat: CLIENT_LOCATION.lat, lng: CLIENT_LOCATION.lng, icon: "home", color: colors.primary },
+            { id: "tech", lat: technicianPosition.lat, lng: technicianPosition.lng, icon: "construct", color: colors.accent },
+          ]}
+        />
         <View style={styles.mapBadge}>
           <Text style={styles.mapBadgeText}>{technicianName} en camino</Text>
         </View>
@@ -114,17 +122,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   mapBadgeText: { color: "#FFFFFF", fontWeight: "600", fontSize: 12 },
-  pin: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  pinHome: { backgroundColor: colors.primary },
-  pinTechnician: { backgroundColor: colors.accent },
   stepper: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -69,6 +69,17 @@ export interface LifecycleState {
   updatedAt: string;
 }
 
+export interface TechnicianProfile {
+  id: string;
+  name: string;
+  trades: string[];
+  location: GeoPoint;
+  rating: number;
+  reviews: number;
+  verified: boolean;
+  online: boolean;
+}
+
 export interface PricingBreakdown {
   laborCost: { amount: number; currency: string };
   materialsCost: { amount: number; currency: string };
@@ -125,6 +136,10 @@ export const api = {
     authToken = null;
     currentName = null;
     persistSession();
+  },
+
+  listTechnicians() {
+    return request<TechnicianProfile[]>("/technicians");
   },
 
   createRequest(description: string, location: GeoPoint, photos: string[] = []) {

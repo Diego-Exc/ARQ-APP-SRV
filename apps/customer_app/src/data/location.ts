@@ -24,3 +24,29 @@ export function lerpPoint(from: GeoPoint, to: GeoPoint, t: number): GeoPoint {
     lng: from.lng + (to.lng - from.lng) * t,
   };
 }
+
+const MIN_DELTA = 0.02;
+
+// Encuadra una región de mapa que contenga todos los puntos dados, con un
+// margen proporcional, usada tanto en el mapa de exploración del Home como
+// en Tracking.
+export function regionForPoints(points: GeoPoint[]): {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+} {
+  const lats = points.map((p) => p.lat);
+  const lngs = points.map((p) => p.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max((maxLat - minLat) * 2.2, MIN_DELTA),
+    longitudeDelta: Math.max((maxLng - minLng) * 2.2, MIN_DELTA),
+  };
+}
