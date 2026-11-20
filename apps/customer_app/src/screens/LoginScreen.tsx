@@ -83,7 +83,14 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
             <Text style={styles.tagline}>¡Tu hogar en buenas manos!</Text>
           </View>
 
-          <Svg width="100%" height={70} viewBox="0 0 1440 220" style={styles.wave} preserveAspectRatio="none">
+          <Svg
+            width="100%"
+            height={70}
+            viewBox="0 0 1440 220"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- los tipos de react-native-svg difieren entre web y nativo para `style`
+            style={styles.wave as any}
+            preserveAspectRatio="none"
+          >
             <Path
               fill={colors.surface}
               d="M0,140L80,151.3C160,163,320,185,480,176C640,167,800,128,960,117.3C1120,107,1280,128,1360,138.3L1440,149L1440,220L0,220Z"

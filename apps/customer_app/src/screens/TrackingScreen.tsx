@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
+import { ServiceMap } from "../components/ServiceMap";
 import { api } from "../api/client";
 import { CLIENT_LOCATION, lerpPoint, technicianStartPoint } from "../data/location";
 import type { RootStackParamList } from "../navigation/AppNavigator";
@@ -58,30 +58,7 @@ export function TrackingScreen({ navigation, route }: Props): React.JSX.Element 
   return (
     <View style={styles.container}>
       <View style={styles.mapWrapper}>
-        <MapView
-          provider={PROVIDER_DEFAULT}
-          style={styles.map}
-          initialRegion={{
-            latitude: (technicianOrigin.lat + CLIENT_LOCATION.lat) / 2,
-            longitude: (technicianOrigin.lng + CLIENT_LOCATION.lng) / 2,
-            latitudeDelta: Math.max(Math.abs(technicianOrigin.lat - CLIENT_LOCATION.lat) * 2.5, 0.02),
-            longitudeDelta: Math.max(Math.abs(technicianOrigin.lng - CLIENT_LOCATION.lng) * 2.5, 0.02),
-          }}
-        >
-          <Marker coordinate={{ latitude: CLIENT_LOCATION.lat, longitude: CLIENT_LOCATION.lng }} title="Tu dirección">
-            <View style={[styles.pin, styles.pinHome]}>
-              <Ionicons name="home" size={16} color="#FFFFFF" />
-            </View>
-          </Marker>
-          <Marker
-            coordinate={{ latitude: technicianPosition.lat, longitude: technicianPosition.lng }}
-            title={technicianName}
-          >
-            <View style={[styles.pin, styles.pinTechnician]}>
-              <Ionicons name="construct" size={16} color="#FFFFFF" />
-            </View>
-          </Marker>
-        </MapView>
+        <ServiceMap home={CLIENT_LOCATION} technician={technicianPosition} style={styles.map} />
         <View style={styles.mapBadge}>
           <Text style={styles.mapBadgeText}>{technicianName} en camino</Text>
         </View>
