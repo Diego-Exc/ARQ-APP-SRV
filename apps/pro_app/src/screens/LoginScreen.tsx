@@ -20,12 +20,11 @@ import type { RootStackParamList } from "../navigation/AppNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
-// Dos técnicos demo precargados en el backend (ver backend/src/bootstrap/server.ts):
-// tecnico1.demo@arreglapues.app (plomería) y tecnico4.demo@arreglapues.app (electricidad),
-// ambos con contraseña demo12345.
+// Las credenciales demo viven en variables de entorno del backend (ver
+// backend/src/bootstrap/migrate.ts), nunca en el código fuente público.
 export function LoginScreen({ navigation }: Props): React.JSX.Element {
-  const [email, setEmail] = useState("tecnico1.demo@arreglapues.app");
-  const [password, setPassword] = useState("demo12345");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
@@ -89,10 +88,6 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
               )}
             </TouchableOpacity>
 
-            <View style={styles.demoHint}>
-              <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
-              <Text style={styles.demoHintText}>Demo: tecnico1.demo@arreglapues.app (plomería)</Text>
-            </View>
           </View>
 
           <View style={styles.trustRow}>
