@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { formatCOP } from "../utils/format";
 import { api, PricingBreakdown } from "../api/client";
+
+const METHOD_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Nequi: "phone-portrait",
+  PSE: "business",
+  "Tarjeta débito/crédito": "card",
+  "Efectivo al técnico": "cash",
+};
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const PAYMENT_METHODS = ["Nequi", "PSE", "Tarjeta débito/crédito", "Efectivo al técnico"];
@@ -13,7 +21,7 @@ const WELCOME_DISCOUNT = 10000;
 
 type Props = NativeStackScreenProps<RootStackParamList, "Payment">;
 
-export function PaymentScreen({ navigation, route }: Props): JSX.Element {
+export function PaymentScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId, technicianId, laborCost } = route.params;
   const [breakdown, setBreakdown] = useState<PricingBreakdown | null>(null);
   const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0]);
@@ -83,25 +91,39 @@ export function PaymentScreen({ navigation, route }: Props): JSX.Element {
           style={[styles.methodRow, selectedMethod === method && styles.methodRowActive]}
           onPress={() => setSelectedMethod(method)}
         >
+          <Ionicons name={METHOD_ICONS[method] ?? "wallet"} size={18} color={colors.textPrimary} />
           <Text style={styles.methodLabel}>{method}</Text>
+          {selectedMethod === method ? (
+            <Ionicons name="checkmark-circle" size={18} color={colors.primary} style={{ marginLeft: "auto" }} />
+          ) : null}
         </TouchableOpacity>
       ))}
 
       <View style={styles.guaranteeBox}>
-        <Text style={styles.guaranteeTitle}>Garantía ArreglaPues por 30 días</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+          <Text style={styles.guaranteeTitle}>Garantía ArreglaPues por 30 días</Text>
+        </View>
         <Text style={styles.guaranteeText}>
           Si la fuga persiste o el problema no quedó resuelto, reagendamos sin costo.
         </Text>
       </View>
 
       <TouchableOpacity style={styles.ctaButton} onPress={handlePay} disabled={paying}>
-        {paying ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Pagar {formatCOP(total)}</Text>}
+        {paying ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <Ionicons name="lock-closed" size={16} color="#FFFFFF" />
+            <Text style={styles.ctaText}>Pagar {formatCOP(total)}</Text>
+          </>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-function Row({ label, value, bold }: { label: string; value: number; bold?: boolean }): JSX.Element {
+function Row({ label, value, bold }: { label: string; value: number; bold?: boolean }): React.JSX.Element {
   return (
     <View style={styles.row}>
       <Text style={[styles.rowLabel, bold && styles.rowBold]}>{label}</Text>
@@ -141,6 +163,9 @@ const styles = StyleSheet.create({
   tipChipText: { color: colors.textPrimary, fontSize: 12 },
   tipChipTextActive: { color: "#FFFFFF", fontWeight: "700" },
   methodRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
@@ -158,10 +183,13 @@ const styles = StyleSheet.create({
   guaranteeTitle: { color: colors.success, fontWeight: "700" },
   guaranteeText: { color: colors.textPrimary, marginTop: 2, fontSize: 12 },
   ctaButton: {
+    flexDirection: "row",
+    gap: 8,
     backgroundColor: colors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
+    justifyContent: "center",
   },
   ctaText: { color: "#FFFFFF", fontWeight: "700" },
 });

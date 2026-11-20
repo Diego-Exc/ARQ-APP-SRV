@@ -98,4 +98,9 @@ export const proApi = {
       body: JSON.stringify({ state }),
     });
   },
+
+  logout(): void {
+    authToken = null;
+    technicianId = null;
+  },
 };

@@ -1,27 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
+import React from "react";
 import { AppNavigator } from "./src/navigation/AppNavigator";
-import { api } from "./src/api/client";
-import { colors } from "./src/theme/colors";
 
-export default function App(): JSX.Element {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    api.ensureDemoSession().finally(() => setReady(true));
-  }, []);
-
-  if (!ready) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
-  }
-
+export default function App(): React.JSX.Element {
   return <AppNavigator />;
 }
-
-const styles = StyleSheet.create({
-  loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background },
-});
