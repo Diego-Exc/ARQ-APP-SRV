@@ -5,6 +5,7 @@
       "ES2021"
     ],
     "jsx": "react-native",
+    "moduleSuffixes": [".ios", ".android", ".native", ".web", ""],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

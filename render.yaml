@@ -19,3 +19,31 @@ services:
         fromDatabase:
           name: arreglapues-db
           property: connectionString
+
+  - type: web
+    name: arreglapues-customer-web
+    runtime: static
+    rootDir: apps/customer_app
+    buildCommand: npm install && npx expo export -p web
+    staticPublishPath: dist
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        value: https://arreglapues-backend.onrender.com/v1
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  - type: web
+    name: arreglapues-pro-web
+    runtime: static
+    rootDir: apps/pro_app
+    buildCommand: npm install && npx expo export -p web
+    staticPublishPath: dist
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        value: https://arreglapues-backend.onrender.com/v1
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
