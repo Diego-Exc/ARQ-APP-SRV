@@ -16,6 +16,7 @@ import { clientNotifications } from "../data/mock";
 import { api, Candidate, TechnicianProfile } from "../api/client";
 import { CLIENT_LOCATION, regionForPoints } from "../data/location";
 import { ServiceMap, MapMarker } from "../components/ServiceMap";
+import { PaisaBot } from "../components/PaisaBot";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -182,6 +183,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
         </View>
       </View>
 
+      {phase === "browse" ? (
+        <PaisaBot style={styles.paisaBot} onSelect={(description) => runDiagnosis(description)} />
+      ) : null}
+
       {phase !== "results" ? (
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
@@ -341,6 +346,7 @@ const styles = StyleSheet.create({
   locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
   locationText: { color: colors.textSecondary, fontSize: 11 },
   topBarActions: { flexDirection: "row", gap: 10 },
+  paisaBot: { top: 110 },
   iconButton: {
     width: 38,
     height: 38,
