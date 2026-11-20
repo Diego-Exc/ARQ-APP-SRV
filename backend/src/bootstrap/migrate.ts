@@ -97,7 +97,7 @@ const SEED_TRADES = [
 const SEED_TECHNICIANS = [
   { id: "tech-1", userId: "tech-1", name: "Carlos Restrepo M.", trades: ["plumbing"], lat: 6.201, lng: -75.57, rating: 4.96, reviews: 318, verified: true, online: true },
   { id: "tech-2", userId: "tech-2", name: "Hernando Gómez Velásquez", trades: ["plumbing", "appliances"], lat: 6.22, lng: -75.585, rating: 4.91, reviews: 154, verified: true, online: true },
-  { id: "tech-3", userId: "tech-3", name: "Julián Ospina Duque", trades: ["plumbing"], lat: 6.23, lng: -75.55, rating: 4.88, reviews: 95, verified: true, online: true },
+  { id: "tech-3", userId: "tech-3", name: "Julián Correa Posada", trades: ["plumbing"], lat: 6.23, lng: -75.55, rating: 4.88, reviews: 95, verified: true, online: true },
   { id: "tech-4", userId: "tech-4", name: "Andrea Zapata Ríos", trades: ["electrical"], lat: 6.205, lng: -75.575, rating: 4.93, reviews: 201, verified: true, online: true },
   { id: "tech-5", userId: "tech-5", name: "Mauricio Vélez Arango", trades: ["locksmith"], lat: 6.215, lng: -75.565, rating: 4.85, reviews: 132, verified: true, online: true },
   { id: "tech-6", userId: "tech-6", name: "Sandra Patiño Lema", trades: ["painting", "appliances"], lat: 6.195, lng: -75.59, rating: 4.78, reviews: 64, verified: true, online: true },
@@ -118,7 +118,7 @@ export async function runMigrations(bcryptHash: (plain: string) => string): Prom
     await pool.query(
       `INSERT INTO technician_profiles (id, user_id, name, trades, lat, lng, rating, reviews, verified, online)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-       ON CONFLICT (id) DO NOTHING`,
+       ON CONFLICT (id) DO UPDATE SET name = $3`,
       [tech.id, tech.userId, tech.name, tech.trades, tech.lat, tech.lng, tech.rating, tech.reviews, tech.verified, tech.online],
     );
   }
@@ -139,8 +139,8 @@ export async function runMigrations(bcryptHash: (plain: string) => string): Prom
   // Nunca se hardcodean en el repo público: solo se siembran si Render tiene
   // configuradas estas variables de entorno.
   const liveDemoUsers = [
-    { id: "tech-3", email: "julian@arreglapues.app", name: "Julián Ospina Duque", role: "PRO", password: process.env.DEMO_JULIAN_PASSWORD },
-    { id: "client-diego-demo", email: "diego@arreglapues.app", name: "Diego", role: "CLIENT", password: process.env.DEMO_DIEGO_PASSWORD },
+    { id: "tech-3", email: "julian@arreglapues.app", name: "Julián Correa Posada", role: "PRO", password: process.env.DEMO_JULIAN_PASSWORD },
+    { id: "client-diego-demo", email: "diego@arreglapues.app", name: "Diego Ulloa", role: "CLIENT", password: process.env.DEMO_DIEGO_PASSWORD },
   ];
   for (const user of liveDemoUsers) {
     if (!user.password) {
@@ -149,7 +149,7 @@ export async function runMigrations(bcryptHash: (plain: string) => string): Prom
     }
     await pool.query(
       `INSERT INTO users (id, email, password_hash, name, role) VALUES ($1,$2,$3,$4,$5)
-       ON CONFLICT (id) DO NOTHING`,
+       ON CONFLICT (id) DO UPDATE SET name = $4`,
       [user.id, user.email, bcryptHash(user.password), user.name, user.role],
     );
   }
