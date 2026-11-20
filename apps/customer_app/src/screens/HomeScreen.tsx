@@ -190,9 +190,26 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       {phase !== "results" ? (
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Text style={styles.greeting}>Hola, {firstName} 👋</Text>
           <Text style={styles.title}>¿Qué necesitas arreglar hoy?</Text>
 
+          <Text style={styles.quickLabel}>Selecciona directo lo que necesitas:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={styles.categoryChip}
+                activeOpacity={0.7}
+                onPress={() => handleCategoryPress(category.name)}
+              >
+                <Ionicons name={CATEGORY_ICONS[category.icon] ?? "build"} size={16} color={colors.accent} />
+                <Text style={styles.categoryChipText}>{category.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.quickLabel}>O descríbelo con tus palabras:</Text>
           <View style={styles.searchCard}>
             <View style={styles.searchLabelRow}>
               <Ionicons name="sparkles" size={14} color="#FFFFFF" />
@@ -228,23 +245,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             ) : null}
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={styles.categoryChip}
-                activeOpacity={0.7}
-                onPress={() => handleCategoryPress(category.name)}
-              >
-                <Ionicons name={CATEGORY_ICONS[category.icon] ?? "build"} size={16} color={colors.accent} />
-                <Text style={styles.categoryChipText}>{category.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
           <Text style={styles.nearbyCount}>
             <Ionicons name="construct" size={12} color={colors.success} /> {allTechnicians.length} técnicos disponibles cerca de ti
           </Text>
+          </ScrollView>
         </View>
       ) : (
         <View style={[styles.sheet, styles.resultsSheet]}>
@@ -388,6 +392,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    maxHeight: "46%",
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -399,6 +404,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  quickLabel: { fontSize: 12, fontWeight: "700", color: colors.textSecondary, marginBottom: 8, marginTop: 4 },
   resultsSheet: { top: "26%", bottom: 0, display: "flex" },
   sheetHandle: {
     width: 40,
