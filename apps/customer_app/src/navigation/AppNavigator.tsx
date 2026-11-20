@@ -36,10 +36,10 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export function AppNavigator(): React.JSX.Element {
+export function AppNavigator({ initialRouteName }: { initialRouteName?: "Login" | "Home" }): React.JSX.Element {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRouteName ?? "Login"}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Account" component={AccountScreen} options={{ headerShown: true, title: "Mi cuenta" }} />

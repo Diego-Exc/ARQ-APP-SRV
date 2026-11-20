@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
@@ -23,23 +23,31 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [damageDescription, setDamageDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const unread = clientNotifications.filter((n) => !n.read).length;
   const firstName = (api.currentUserName ?? "Cliente").split(" ")[0];
 
-  async function handleDiagnose() {
-    if (!damageDescription.trim()) {
-      Alert.alert("Describe el daño", "Cuéntanos qué pasó para poder ayudarte.");
+  async function handleDiagnose(description: string = damageDescription) {
+    setErrorMessage(null);
+    if (!description.trim()) {
+      setErrorMessage("Cuéntanos qué pasó para poder ayudarte.");
       return;
     }
     setLoading(true);
     try {
-      const result = await api.createRequest(damageDescription, CLIENT_LOCATION);
-      navigation.navigate("Diagnosis", { ...result, description: damageDescription });
+      const result = await api.createRequest(description, CLIENT_LOCATION);
+      navigation.navigate("Diagnosis", { ...result, description });
     } catch (error) {
-      Alert.alert("No se pudo diagnosticar", (error as Error).message);
+      setErrorMessage((error as Error).message || "No se pudo diagnosticar. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleCategoryPress(categoryName: string) {
+    const description = `Necesito un servicio de ${categoryName.toLowerCase()}`;
+    setDamageDescription(description);
+    handleDiagnose(description);
   }
 
   return (
@@ -83,7 +91,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           onChangeText={setDamageDescription}
           multiline
         />
-        <TouchableOpacity style={styles.searchButton} onPress={handleDiagnose} disabled={loading}>
+        <TouchableOpacity style={styles.searchButton} onPress={() => handleDiagnose()} disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
@@ -93,6 +101,12 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             </>
           )}
         </TouchableOpacity>
+        {errorMessage ? (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={14} color="#FFFFFF" />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.expressBanner}>
@@ -109,13 +123,18 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       <Text style={styles.sectionTitle}>Servicios Profesionales</Text>
       <View style={styles.categoryGrid}>
         {categories.map((category) => (
-          <View key={category.id} style={styles.categoryCard}>
+          <TouchableOpacity
+            key={category.id}
+            style={styles.categoryCard}
+            activeOpacity={0.7}
+            onPress={() => handleCategoryPress(category.name)}
+          >
             <View style={styles.categoryIcon}>
               <Ionicons name={CATEGORY_ICONS[category.icon] ?? "build"} size={20} color={colors.accent} />
             </View>
             <Text style={styles.categoryName}>{category.name}</Text>
             <Text style={styles.categoryPrice}>Desde {formatCOP(category.priceFrom)}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
 
@@ -124,7 +143,12 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.technicianRow}>
         {technicians.map((tech) => (
-          <View key={tech.id} style={styles.technicianCard}>
+          <TouchableOpacity
+            key={tech.id}
+            style={styles.technicianCard}
+            activeOpacity={0.7}
+            onPress={() => handleCategoryPress(tech.trade)}
+          >
             {tech.recommended ? (
               <View style={styles.recommendedPill}>
                 <Ionicons name="ribbon" size={10} color="#FFFFFF" />
@@ -145,7 +169,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               <Text style={styles.technicianRating}>{tech.rating.toFixed(2)}</Text>
               <Text style={styles.technicianDistance}>· {tech.distanceKm} km</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
@@ -237,6 +261,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   searchButtonText: { color: "#FFFFFF", fontWeight: "700" },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.danger,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+  },
+  errorText: { color: "#FFFFFF", fontSize: 12, flex: 1 },
   expressBanner: {
     flexDirection: "row",
     alignItems: "center",
