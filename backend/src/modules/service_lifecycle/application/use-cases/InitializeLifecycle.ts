@@ -4,14 +4,14 @@ import { ServiceLifecycleRepository } from "../../domain/ports/ServiceLifecycleR
 export class InitializeLifecycle {
   constructor(private readonly lifecycles: ServiceLifecycleRepository) {}
 
-  execute(requestId: string): void {
+  async execute(requestId: string): Promise<void> {
     const record = {
       requestId,
       state: "SUBMITTED" as const,
       assignedTechnicianId: null,
       updatedAt: new Date().toISOString(),
     };
-    this.lifecycles.save(record);
+    await this.lifecycles.save(record);
     eventBus.emit(DomainEvents.ServiceStateChanged, record);
   }
 }

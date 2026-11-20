@@ -4,10 +4,10 @@ import { TechnicianProfileRepository } from "../../domain/ports/TechnicianProfil
 export class SetAvailability {
   constructor(private readonly profiles: TechnicianProfileRepository) {}
 
-  execute(technicianId: string, online: boolean): void {
-    const profile = this.profiles.findById(technicianId);
+  async execute(technicianId: string, online: boolean): Promise<void> {
+    const profile = await this.profiles.findById(technicianId);
     if (!profile) throw Errors.notFound("Perfil de técnico no encontrado");
     profile.online = online;
-    this.profiles.save(profile);
+    await this.profiles.save(profile);
   }
 }

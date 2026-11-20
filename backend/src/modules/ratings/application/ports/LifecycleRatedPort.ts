@@ -1,3 +1,3 @@
 export interface LifecycleRatedPort {
-  markRated(requestId: string): void;
+  markRated(requestId: string): Promise<void>;
 }

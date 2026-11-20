@@ -1,19 +1,20 @@
 import { User } from "../../domain/entities/User";
 import { UserRepository } from "../../domain/ports/UserRepository";
 
+// Usado por tests unitarios; el backend real usa PgUserRepository.
 export class InMemoryUserRepository implements UserRepository {
   private readonly byId = new Map<string, User>();
   private readonly byEmail = new Map<string, User>();
 
-  findByEmail(email: string): User | undefined {
+  async findByEmail(email: string): Promise<User | undefined> {
     return this.byEmail.get(email.toLowerCase());
   }
 
-  findById(id: string): User | undefined {
+  async findById(id: string): Promise<User | undefined> {
     return this.byId.get(id);
   }
 
-  save(user: User): void {
+  async save(user: User): Promise<void> {
     this.byId.set(user.id, user);
     this.byEmail.set(user.email.toLowerCase(), user);
   }

@@ -5,20 +5,22 @@ import { WebSocketServer } from "ws";
 import { ZodError } from "zod";
 import { AppError } from "../shared/http-error";
 import { eventBus, DomainEvents } from "../shared/event-bus";
+import { pool } from "../shared/db";
+import { runMigrations } from "./migrate";
 import { ServiceLifecycleRecord } from "../modules/service_lifecycle/domain/entities/ServiceStateMachine";
 
-import { InMemoryUserRepository } from "../modules/identity/adapters/outbound/InMemoryUserRepository";
+import { PgUserRepository } from "../modules/identity/adapters/outbound/PgUserRepository";
 import { JwtTokenSigner } from "../modules/identity/adapters/outbound/JwtTokenSigner";
 import { RegisterUser } from "../modules/identity/application/use-cases/RegisterUser";
 import { LoginUser } from "../modules/identity/application/use-cases/LoginUser";
 import { createIdentityRouter } from "../modules/identity/adapters/inbound/identity.router";
 import { createAuthMiddleware } from "../modules/identity/adapters/inbound/authMiddleware";
 
-import { InMemoryTradeRepository } from "../modules/catalog/adapters/outbound/InMemoryTradeRepository";
+import { PgTradeRepository } from "../modules/catalog/adapters/outbound/PgTradeRepository";
 import { ListTrades } from "../modules/catalog/application/use-cases/ListTrades";
 import { createCatalogRouter } from "../modules/catalog/adapters/inbound/catalog.router";
 
-import { InMemoryTechnicianProfileRepository } from "../modules/profiles/adapters/outbound/InMemoryTechnicianProfileRepository";
+import { PgTechnicianProfileRepository } from "../modules/profiles/adapters/outbound/PgTechnicianProfileRepository";
 import { ListAvailableTechniciansByTrade } from "../modules/profiles/application/use-cases/ListAvailableTechniciansByTrade";
 import { SetAvailability } from "../modules/profiles/application/use-cases/SetAvailability";
 import { createProfilesRouter } from "../modules/profiles/adapters/inbound/profiles.router";
@@ -27,7 +29,7 @@ import { CatalogTradeCatalogAdapter } from "../modules/diagnosis/adapters/outbou
 import { ClassifyDamage } from "../modules/diagnosis/application/use-cases/ClassifyDamage";
 import { createDiagnosisRouter } from "../modules/diagnosis/adapters/inbound/diagnosis.router";
 
-import { InMemoryServiceRequestRepository } from "../modules/requests/adapters/outbound/InMemoryServiceRequestRepository";
+import { PgServiceRequestRepository } from "../modules/requests/adapters/outbound/PgServiceRequestRepository";
 import { DiagnosisClassifierAdapter } from "../modules/requests/adapters/outbound/DiagnosisClassifierAdapter";
 import { ServiceLifecycleAdapter } from "../modules/requests/adapters/outbound/ServiceLifecycleAdapter";
 import { CreateRequest } from "../modules/requests/application/use-cases/CreateRequest";
@@ -36,12 +38,12 @@ import { createRequestsRouter } from "../modules/requests/adapters/inbound/reque
 
 import { ProfilesTechnicianDirectory } from "../modules/matching/adapters/outbound/ProfilesTechnicianDirectory";
 import { ServiceLifecycleTransitionAdapter } from "../modules/matching/adapters/outbound/ServiceLifecycleTransitionAdapter";
-import { InMemoryOfferRepository } from "../modules/matching/adapters/outbound/InMemoryOfferRepository";
+import { PgOfferRepository } from "../modules/matching/adapters/outbound/PgOfferRepository";
 import { FindCandidates } from "../modules/matching/application/use-cases/FindCandidates";
 import { createMatchingRouter } from "../modules/matching/adapters/inbound/matching.router";
 import { registerOfferCleanupListener } from "../modules/matching/adapters/inbound/OfferCleanupListener";
 
-import { InMemoryServiceLifecycleRepository } from "../modules/service_lifecycle/adapters/outbound/InMemoryServiceLifecycleRepository";
+import { PgServiceLifecycleRepository } from "../modules/service_lifecycle/adapters/outbound/PgServiceLifecycleRepository";
 import { InitializeLifecycle } from "../modules/service_lifecycle/application/use-cases/InitializeLifecycle";
 import { TransitionLifecycle } from "../modules/service_lifecycle/application/use-cases/TransitionLifecycle";
 import { AcceptService } from "../modules/service_lifecycle/application/use-cases/AcceptService";
@@ -51,11 +53,11 @@ import { createServiceLifecycleRouter } from "../modules/service_lifecycle/adapt
 import { ComputeFinalAmount } from "../modules/pricing/application/use-cases/ComputeFinalAmount";
 import { createPricingRouter } from "../modules/pricing/adapters/inbound/pricing.router";
 
-import { InMemoryPaymentRepository } from "../modules/payments/adapters/outbound/InMemoryPaymentRepository";
+import { PgPaymentRepository } from "../modules/payments/adapters/outbound/PgPaymentRepository";
 import { CapturePayment } from "../modules/payments/application/use-cases/CapturePayment";
 import { createPaymentsRouter } from "../modules/payments/adapters/inbound/payments.router";
 
-import { InMemoryRatingRepository } from "../modules/ratings/adapters/outbound/InMemoryRatingRepository";
+import { PgRatingRepository } from "../modules/ratings/adapters/outbound/PgRatingRepository";
 import { ServiceLifecycleRatedAdapter } from "../modules/ratings/adapters/outbound/ServiceLifecycleRatedAdapter";
 import { OpenRatingWindow } from "../modules/ratings/application/use-cases/OpenRatingWindow";
 import { SubmitRating } from "../modules/ratings/application/use-cases/SubmitRating";
@@ -74,36 +76,23 @@ export function createApp(): Express {
   app.use(express.json());
 
   // --- Composición de dependencias por módulo (bootstrap, ADR-0002) ---
+  // Todos los repositorios son adaptadores Postgres reales (src/shared/db.ts);
+  // los datos sobreviven reinicios del servidor y no dependen de ninguna
+  // máquina local (ver render.yaml, recurso `arreglapues-db`).
 
   // Identity
-  const userRepository = new InMemoryUserRepository();
+  const userRepository = new PgUserRepository(pool);
   const tokenSigner = new JwtTokenSigner(JWT_SECRET);
   const registerUser = new RegisterUser(userRepository, tokenSigner);
   const loginUser = new LoginUser(userRepository, tokenSigner);
   const authMiddleware = createAuthMiddleware(tokenSigner);
 
-  // Usuarios demo de técnicos (app Pro): su id coincide con el `userId` de su
-  // perfil en Profiles (tech-1, tech-4), para no exigir un flujo de
-  // verificación de identidad completo fuera del alcance de este MVP.
-  for (const demo of [
-    { id: "tech-1", email: "tecnico1.demo@arreglapues.app", name: "Carlos Restrepo M." },
-    { id: "tech-4", email: "tecnico4.demo@arreglapues.app", name: "Andrea Zapata Ríos" },
-  ]) {
-    userRepository.save({
-      id: demo.id,
-      email: demo.email,
-      passwordHash: bcrypt.hashSync("demo12345", 10),
-      name: demo.name,
-      role: "PRO",
-    });
-  }
-
   // Catalog
-  const tradeRepository = new InMemoryTradeRepository();
+  const tradeRepository = new PgTradeRepository(pool);
   const listTrades = new ListTrades(tradeRepository);
 
   // Profiles
-  const technicianRepository = new InMemoryTechnicianProfileRepository();
+  const technicianRepository = new PgTechnicianProfileRepository(pool);
   const listAvailableTechnicians = new ListAvailableTechniciansByTrade(technicianRepository);
   const setAvailability = new SetAvailability(technicianRepository);
 
@@ -112,14 +101,14 @@ export function createApp(): Express {
   const classifyDamage = new ClassifyDamage(tradeCatalogPort);
 
   // Service Lifecycle
-  const lifecycleRepository = new InMemoryServiceLifecycleRepository();
+  const lifecycleRepository = new PgServiceLifecycleRepository(pool);
   const initializeLifecycle = new InitializeLifecycle(lifecycleRepository);
   const transitionLifecycle = new TransitionLifecycle(lifecycleRepository);
   const acceptService = new AcceptService(lifecycleRepository);
   const getLifecycleState = new GetLifecycleState(lifecycleRepository);
 
   // Requests (depende de Diagnosis y Service Lifecycle vía casos de uso públicos)
-  const requestRepository = new InMemoryServiceRequestRepository();
+  const requestRepository = new PgServiceRequestRepository(pool);
   const damageClassifierPort = new DiagnosisClassifierAdapter(classifyDamage);
   const lifecyclePort = new ServiceLifecycleAdapter(initializeLifecycle);
   const createRequest = new CreateRequest(requestRepository, damageClassifierPort, lifecyclePort);
@@ -128,7 +117,7 @@ export function createApp(): Express {
   // Matching (depende de Profiles y Service Lifecycle vía casos de uso públicos)
   const technicianDirectory = new ProfilesTechnicianDirectory(listAvailableTechnicians);
   const matchingLifecycleTransition = new ServiceLifecycleTransitionAdapter(transitionLifecycle);
-  const offerRepository = new InMemoryOfferRepository();
+  const offerRepository = new PgOfferRepository(pool);
   const findCandidates = new FindCandidates(technicianDirectory, matchingLifecycleTransition, offerRepository);
   registerOfferCleanupListener(offerRepository);
 
@@ -136,11 +125,11 @@ export function createApp(): Express {
   const computeFinalAmount = new ComputeFinalAmount();
 
   // Payments
-  const paymentRepository = new InMemoryPaymentRepository();
+  const paymentRepository = new PgPaymentRepository(pool);
   const capturePayment = new CapturePayment(paymentRepository);
 
   // Ratings (depende de Service Lifecycle vía su caso de uso público)
-  const ratingRepository = new InMemoryRatingRepository();
+  const ratingRepository = new PgRatingRepository(pool);
   const lifecycleRatedPort = new ServiceLifecycleRatedAdapter(transitionLifecycle);
   const openRatingWindow = new OpenRatingWindow(ratingRepository);
   const submitRating = new SubmitRating(ratingRepository, lifecycleRatedPort);
@@ -192,7 +181,11 @@ export function createApp(): Express {
   return app;
 }
 
-export function start(port: number = PORT) {
+export async function start(port: number = PORT) {
+  // Migra el esquema y siembra datos de referencia antes de aceptar tráfico
+  // (idempotente: seguro de ejecutar en cada arranque, ver bootstrap/migrate.ts).
+  await runMigrations((plain) => bcrypt.hashSync(plain, 10));
+
   const app = createApp();
   const server = createServer(app);
 

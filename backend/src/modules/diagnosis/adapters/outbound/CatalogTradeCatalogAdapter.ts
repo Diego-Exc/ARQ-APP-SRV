@@ -7,8 +7,9 @@ import { TradeCatalogPort } from "../../application/ports/TradeCatalogPort";
 export class CatalogTradeCatalogAdapter implements TradeCatalogPort {
   constructor(private readonly listTrades: ListTrades) {}
 
-  listClassifiableTrades(): ClassifiableTrade[] {
-    return this.listTrades.execute().map((trade) => ({
+  async listClassifiableTrades(): Promise<ClassifiableTrade[]> {
+    const trades = await this.listTrades.execute();
+    return trades.map((trade) => ({
       id: trade.id,
       name: trade.name,
       keywords: trade.keywords,

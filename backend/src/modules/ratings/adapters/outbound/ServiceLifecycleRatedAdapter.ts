@@ -4,7 +4,7 @@ import { LifecycleRatedPort } from "../../application/ports/LifecycleRatedPort";
 export class ServiceLifecycleRatedAdapter implements LifecycleRatedPort {
   constructor(private readonly transitionLifecycle: TransitionLifecycle) {}
 
-  markRated(requestId: string): void {
-    this.transitionLifecycle.execute(requestId, "RATED");
+  async markRated(requestId: string): Promise<void> {
+    await this.transitionLifecycle.execute(requestId, "RATED");
   }
 }

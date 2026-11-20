@@ -1,12 +1,16 @@
 import { Router } from "express";
 import { SubmitRating } from "../../application/use-cases/SubmitRating";
+import { asyncHandler } from "../../../../shared/asyncHandler";
 
 export function createRatingsRouter(submitRating: SubmitRating): Router {
   const router = Router();
 
-  router.post("/ratings", (req, res) => {
-    res.status(201).json(submitRating.execute(req.body));
-  });
+  router.post(
+    "/ratings",
+    asyncHandler(async (req, res) => {
+      res.status(201).json(await submitRating.execute(req.body));
+    }),
+  );
 
   return router;
 }

@@ -7,5 +7,5 @@ export interface DamageClassificationView {
 }
 
 export interface DamageClassifierPort {
-  classify(description: string): DamageClassificationView;
+  classify(description: string): Promise<DamageClassificationView>;
 }
