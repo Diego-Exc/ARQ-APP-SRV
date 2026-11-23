@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
-import { api } from "../api/client";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 type ChecklistItem = { id: string; label: string; done: boolean };
@@ -21,17 +20,13 @@ type Props = NativeStackScreenProps<RootStackParamList, "ServiceProgress">;
 export function ServiceProgressScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId, technicianId } = route.params;
   const [checklist] = useState(INITIAL_CHECKLIST);
-  const [loading, setLoading] = useState(false);
   const completedCount = checklist.filter((item) => item.done).length;
 
-  async function handleFinish() {
-    setLoading(true);
-    try {
-      await api.advanceState(requestId, "COMPLETED");
-      navigation.navigate("Payment", { requestId, technicianId, laborCost: 60000 });
-    } finally {
-      setLoading(false);
-    }
+  function handleFinish() {
+    // El cliente ya no marca el servicio como completado: ese estado lo
+    // reporta el técnico real desde pro_app (issue #25). Esto solo navega
+    // a la pantalla de pago.
+    navigation.navigate("Payment", { requestId, technicianId, laborCost: 60000 });
   }
 
   return (
@@ -61,15 +56,9 @@ export function ServiceProgressScreen({ navigation, route }: Props): React.JSX.E
         </View>
       ))}
 
-      <TouchableOpacity style={styles.ctaButton} onPress={handleFinish} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <>
-            <Ionicons name="receipt" size={18} color="#FFFFFF" />
-            <Text style={styles.ctaText}>Ver resumen y pago</Text>
-          </>
-        )}
+      <TouchableOpacity style={styles.ctaButton} onPress={handleFinish}>
+        <Ionicons name="receipt" size={18} color="#FFFFFF" />
+        <Text style={styles.ctaText}>Ver resumen y pago</Text>
       </TouchableOpacity>
     </ScrollView>
   );

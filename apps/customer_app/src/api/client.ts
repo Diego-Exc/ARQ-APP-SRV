@@ -168,12 +168,11 @@ export const api = {
     });
   },
 
-  advanceState(requestId: string, state: string) {
-    return request<LifecycleState>(`/services/${requestId}/state`, {
-      method: "PATCH",
-      body: JSON.stringify({ state }),
-    });
-  },
+  // No se expone advanceState aqui a proposito: el avance real del servicio
+  // (en camino -> llego -> completado) solo lo escribe el tecnico desde
+  // pro_app; el backend lo rechaza con 403 si lo llama un CLIENT (issue #25).
+  // El cliente solo lee el estado por WebSocket (openServiceSocket) o polling
+  // (getServiceState).
 
   getServiceState(requestId: string) {
     return request<LifecycleState>(`/services/${requestId}`);

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
@@ -29,7 +29,6 @@ type Props = NativeStackScreenProps<RootStackParamList, "Tracking">;
 export function TrackingScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId, technicianId, technicianName, distanceKm } = route.params;
   const [state, setState] = useState("ASSIGNED");
-  const [loading, setLoading] = useState(false);
 
   const technicianOrigin = useMemo(() => technicianStartPoint(distanceKm), [distanceKm]);
   const progress = PROGRESS_BY_STATE[state] ?? 0;
@@ -37,23 +36,17 @@ export function TrackingScreen({ navigation, route }: Props): React.JSX.Element 
   const region = useMemo(() => regionForPoints([CLIENT_LOCATION, technicianOrigin]), [technicianOrigin]);
 
   useEffect(() => {
+    // El cliente solo recibe el avance real del servicio (lo reporta el
+    // técnico desde pro_app: ASSIGNED -> EN_ROUTE -> IN_PROGRESS ->
+    // COMPLETED); nunca lo escribe (decisión de diseño, issue #25).
     const close = api.openServiceSocket(requestId, (lifecycle) => setState(lifecycle.state));
-    // El técnico "sale en camino" automáticamente al confirmar la asignación,
-    // simulando la actualización que en producción enviaría la app Pro.
-    api.advanceState(requestId, "EN_ROUTE").catch(() => undefined);
     return close;
   }, [requestId]);
 
   const currentIndex = STEPS.findIndex((step) => step.key === state);
 
-  async function handleContinue() {
-    setLoading(true);
-    try {
-      await api.advanceState(requestId, "IN_PROGRESS");
-      navigation.navigate("ServiceProgress", { requestId, technicianId });
-    } finally {
-      setLoading(false);
-    }
+  function handleContinue() {
+    navigation.navigate("ServiceProgress", { requestId, technicianId });
   }
 
   return (
@@ -99,8 +92,8 @@ export function TrackingScreen({ navigation, route }: Props): React.JSX.Element 
           <Text style={styles.securityHint}>Pídeselo al técnico antes de abrir la puerta</Text>
         </View>
 
-        <TouchableOpacity style={styles.ctaButton} onPress={handleContinue} disabled={loading}>
-          {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Ver servicio en progreso</Text>}
+        <TouchableOpacity style={styles.ctaButton} onPress={handleContinue}>
+          <Text style={styles.ctaText}>Ver servicio en progreso</Text>
         </TouchableOpacity>
       </View>
     </View>
