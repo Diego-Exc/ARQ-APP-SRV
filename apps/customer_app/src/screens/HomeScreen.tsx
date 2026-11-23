@@ -7,7 +7,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
@@ -48,6 +50,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const unread = clientNotifications.filter((n) => !n.read).length;
   const firstName = (api.currentUserName ?? "Cliente").split(" ")[0];
@@ -98,7 +101,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
     }
     setPhase("matching");
     try {
-      const result = await api.createRequest(description, CLIENT_LOCATION);
+      const result = await api.createRequest(description, CLIENT_LOCATION, photos);
       setDiagnosis({
         requestId: result.requestId,
         tradeId: result.tradeId,
@@ -136,6 +139,31 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
     setCandidates([]);
     setSelectedId(null);
     setDamageDescription("");
+    setPhotos([]);
+  }
+
+  async function pickPhoto() {
+    if (photos.length >= 3) {
+      setErrorMessage("Máximo 3 fotos por solicitud.");
+      return;
+    }
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setErrorMessage("Necesitamos permiso para acceder a tus fotos.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.5,
+      base64: true,
+    });
+    if (result.canceled || !result.assets[0]?.base64) return;
+    const mime = result.assets[0].mimeType ?? "image/jpeg";
+    setPhotos((prev) => [...prev, `data:${mime};base64,${result.assets[0].base64}`]);
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleConfirm() {
@@ -225,6 +253,24 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               onChangeText={setDamageDescription}
               multiline
             />
+
+            <View style={styles.photoRow}>
+              {photos.map((uri, index) => (
+                <View key={index} style={styles.photoThumbWrapper}>
+                  <Image source={{ uri }} style={styles.photoThumb} />
+                  <TouchableOpacity style={styles.photoRemove} onPress={() => removePhoto(index)}>
+                    <Ionicons name="close" size={11} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {photos.length < 3 ? (
+                <TouchableOpacity style={styles.photoAddButton} onPress={pickPhoto}>
+                  <Ionicons name="camera" size={18} color="#FFFFFF" />
+                  <Text style={styles.photoAddText}>Foto</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
             <TouchableOpacity
               style={styles.searchButton}
               onPress={() => runDiagnosis(damageDescription)}
@@ -472,6 +518,31 @@ const styles = StyleSheet.create({
     minHeight: 44,
     color: colors.textPrimary,
   },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" },
+  photoThumbWrapper: { position: "relative" },
+  photoThumb: { width: 44, height: 44, borderRadius: 10 },
+  photoRemove: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoAddButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoAddText: { color: "#FFFFFF", fontSize: 8, fontWeight: "600", marginTop: 1 },
   searchButton: {
     flexDirection: "row",
     gap: 8,
