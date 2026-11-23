@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     // react-navigation/bottom-tabs con altura propia); se deja un margen
     // fijo para que el panel flotante nunca quede tapado por ella.
     bottom: TAB_BAR_CLEARANCE,
-    maxHeight: "46%",
+    maxHeight: "72%",
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
