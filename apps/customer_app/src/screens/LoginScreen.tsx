@@ -52,7 +52,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
         }
         await api.register(name, email, password);
       }
-      navigation.replace("Home");
+      navigation.replace("MainTabs");
     } catch (error) {
       Alert.alert(mode === "login" ? "No se pudo iniciar sesión" : "No se pudo crear la cuenta", (error as Error).message);
     } finally {
