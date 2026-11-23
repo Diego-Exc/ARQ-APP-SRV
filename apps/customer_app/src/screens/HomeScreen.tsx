@@ -228,7 +228,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       {phase !== "results" ? (
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Text style={styles.greeting}>Hola, {firstName} 👋</Text>
           <Text style={styles.title}>¿Qué necesitas arreglar hoy?</Text>
 
@@ -492,12 +492,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 16,
     paddingBottom: 24,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 8,
   },
+  sheetScroll: { flexShrink: 1 },
   quickLabel: { fontSize: 12, fontWeight: "700", color: colors.textSecondary, marginBottom: 8, marginTop: 4 },
   resultsSheet: { top: "42%", bottom: TAB_BAR_CLEARANCE, display: "flex", overflow: "hidden" },
   resultsSheetCollapsed: { top: "85%" },
