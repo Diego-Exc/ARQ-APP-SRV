@@ -50,7 +50,7 @@ export function PaymentScreen({ navigation, route }: Props): React.JSX.Element {
     try {
       await api.capturePayment(requestId, idempotencyKey.current, total, selectedMethod);
       await api.submitRating(requestId, technicianId, 5, "Excelente servicio, gracias ArreglaPues");
-      navigation.navigate("Home");
+      navigation.navigate("MainTabs");
     } catch (error) {
       Alert.alert("No se pudo procesar el pago", (error as Error).message);
     } finally {
