@@ -32,6 +32,7 @@ export interface LifecycleState {
   requestId: string;
   state: string;
   assignedTechnicianId: string | null;
+  securityCode: string | null;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -90,6 +91,10 @@ export const proApi = {
     return request<ServiceRequestView>(`/requests/${requestId}`);
   },
 
+  getServiceState(requestId: string): Promise<LifecycleState> {
+    return request<LifecycleState>(`/services/${requestId}`);
+  },
+
   acceptService(requestId: string): Promise<LifecycleState> {
     return request<LifecycleState>(`/services/${requestId}/accept`, {
       method: "POST",
@@ -97,10 +102,10 @@ export const proApi = {
     });
   },
 
-  advanceState(requestId: string, state: string): Promise<LifecycleState> {
+  advanceState(requestId: string, state: string, code?: string): Promise<LifecycleState> {
     return request<LifecycleState>(`/services/${requestId}/state`, {
       method: "PATCH",
-      body: JSON.stringify({ state }),
+      body: JSON.stringify({ state, code }),
     });
   },
 

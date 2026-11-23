@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
@@ -23,22 +23,47 @@ type Props = NativeStackScreenProps<RootStackParamList, "ServiceDetail">;
 
 export function ServiceDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId } = route.params;
-  const [state, setState] = useState("ASSIGNED");
+  const [state, setState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
 
-  const action = NEXT_STATE[state];
+  useEffect(() => {
+    // Antes esta pantalla siempre arrancaba en "ASSIGNED" sin consultar el
+    // backend: si el tecnico recargaba a mitad de servicio, veia un estado
+    // desactualizado. Ahora carga el estado real al montar.
+    proApi
+      .getServiceState(requestId)
+      .then((lifecycle) => setState(lifecycle.state))
+      .catch(() => setState("ASSIGNED"));
+  }, [requestId]);
+
+  const action = state ? NEXT_STATE[state] : undefined;
+  const needsCode = action?.next === "IN_PROGRESS";
 
   async function handleAdvance() {
     if (!action) return;
+    if (needsCode && codeInput.trim().length === 0) {
+      Alert.alert("Falta el código", "Pídele al cliente el código de seguridad antes de iniciar.");
+      return;
+    }
     setLoading(true);
     try {
-      const updated = await proApi.advanceState(requestId, action.next);
+      const updated = await proApi.advanceState(requestId, action.next, needsCode ? codeInput.trim() : undefined);
       setState(updated.state);
+      setCodeInput("");
     } catch (error) {
       Alert.alert("No se pudo actualizar el estado", (error as Error).message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (state === null) {
+    return (
+      <View style={[styles.container, { alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
   }
 
   return (
@@ -51,6 +76,21 @@ export function ServiceDetailScreen({ navigation, route }: Props): React.JSX.Ele
         <Text style={styles.stateLabel}>Estado actual</Text>
         <Text style={styles.stateValue}>{state}</Text>
       </View>
+
+      {needsCode ? (
+        <View style={styles.codeBox}>
+          <Text style={styles.codeLabel}>Código de seguridad del cliente</Text>
+          <TextInput
+            style={styles.codeInput}
+            value={codeInput}
+            onChangeText={setCodeInput}
+            placeholder="4 dígitos"
+            placeholderTextColor={colors.textSecondary}
+            keyboardType="number-pad"
+            maxLength={4}
+          />
+        </View>
+      ) : null}
 
       {action ? (
         <TouchableOpacity style={styles.ctaButton} onPress={handleAdvance} disabled={loading}>
@@ -93,6 +133,24 @@ const styles = StyleSheet.create({
   },
   stateLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 6 },
   stateValue: { color: colors.primary, fontWeight: "700", fontSize: 18, marginTop: 4 },
+  codeBox: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  codeLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 8 },
+  codeInput: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 18,
+    letterSpacing: 6,
+    color: colors.textPrimary,
+  },
   ctaButton: {
     flexDirection: "row",
     gap: 8,

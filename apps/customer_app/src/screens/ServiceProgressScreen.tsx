@@ -1,31 +1,49 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
+import { api } from "../api/client";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
-type ChecklistItem = { id: string; label: string; done: boolean };
-
-const INITIAL_CHECKLIST: ChecklistItem[] = [
-  { id: "shutoff", label: "Cierre de llave de paso principal", done: true },
-  { id: "disassembly", label: "Desmontaje de sifón averiado", done: true },
-  { id: "install", label: "Instalación de sifón flexible nuevo", done: true },
-  { id: "pressure", label: "Prueba de estanqueidad y presión hidráulica", done: false },
-  { id: "cleanup", label: "Limpieza y desinfección del área de trabajo", done: false },
+// Pasos reales del ciclo de vida (ServiceStateMachine en el backend): un paso
+// se marca "hecho" solo si ya ocurrió de verdad esa transición, no una lista
+// fija de tareas sin relación con el estado (hallazgo de auditoría, issue #25).
+const STEPS = [
+  { key: "ASSIGNED", label: "Técnico asignado" },
+  { key: "EN_ROUTE", label: "Técnico en camino" },
+  { key: "IN_PROGRESS", label: "Servicio en progreso" },
+  { key: "COMPLETED", label: "Servicio finalizado" },
 ];
 
 type Props = NativeStackScreenProps<RootStackParamList, "ServiceProgress">;
 
 export function ServiceProgressScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId, technicianId } = route.params;
-  const [checklist] = useState(INITIAL_CHECKLIST);
-  const completedCount = checklist.filter((item) => item.done).length;
+  const [state, setState] = useState("IN_PROGRESS");
+  const [securityCode, setSecurityCode] = useState<string | null>(null);
+  const currentIndex = STEPS.findIndex((step) => step.key === state);
+  const isCompleted = state === "COMPLETED";
+
+  useEffect(() => {
+    api
+      .getServiceState(requestId)
+      .then((lifecycle) => {
+        setState(lifecycle.state);
+        setSecurityCode(lifecycle.securityCode);
+      })
+      .catch(() => undefined);
+    const close = api.openServiceSocket(requestId, (lifecycle) => {
+      setState(lifecycle.state);
+      setSecurityCode(lifecycle.securityCode);
+    });
+    return close;
+  }, [requestId]);
 
   function handleFinish() {
     // El cliente ya no marca el servicio como completado: ese estado lo
-    // reporta el técnico real desde pro_app (issue #25). Esto solo navega
-    // a la pantalla de pago.
+    // reporta el técnico real desde pro_app (issue #25). El botón solo se
+    // habilita cuando el backend ya confirmó COMPLETED.
     navigation.navigate("Payment", { requestId, technicianId, laborCost: 60000 });
   }
 
@@ -36,29 +54,36 @@ export function ServiceProgressScreen({ navigation, route }: Props): React.JSX.E
 
       <View style={styles.securityCard}>
         <Ionicons name="lock-closed" size={18} color={colors.primary} />
-        <Text style={styles.securityLabel}>Validación de Acceso Seguro</Text>
-        <Text style={styles.pin}>8 4 9 2</Text>
+        <Text style={styles.securityLabel}>Código de seguridad de este servicio</Text>
+        <Text style={styles.pin}>{securityCode ?? "----"}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-          <Text style={styles.securityVerified}>Entrada verificada</Text>
+          <Text style={styles.securityVerified}>Entrada verificada por el técnico</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>
-        Protocolo y Checklist Técnico ({completedCount}/{checklist.length})
-      </Text>
-      {checklist.map((item) => (
-        <View key={item.id} style={styles.checklistRow}>
-          <View style={[styles.checkbox, item.done && styles.checkboxDone]}>
-            {item.done ? <Ionicons name="checkmark" size={12} color="#FFFFFF" /> : null}
+      <Text style={styles.sectionTitle}>Estado real del servicio</Text>
+      {STEPS.map((step, index) => {
+        const done = index <= currentIndex;
+        return (
+          <View key={step.key} style={styles.checklistRow}>
+            <View style={[styles.checkbox, done && styles.checkboxDone]}>
+              {done ? <Ionicons name="checkmark" size={12} color="#FFFFFF" /> : null}
+            </View>
+            <Text style={[styles.checklistLabel, done && styles.checklistLabelDone]}>{step.label}</Text>
           </View>
-          <Text style={[styles.checklistLabel, item.done && styles.checklistLabelDone]}>{item.label}</Text>
-        </View>
-      ))}
+        );
+      })}
 
-      <TouchableOpacity style={styles.ctaButton} onPress={handleFinish}>
+      <TouchableOpacity
+        style={[styles.ctaButton, !isCompleted && styles.ctaButtonDisabled]}
+        onPress={handleFinish}
+        disabled={!isCompleted}
+      >
         <Ionicons name="receipt" size={18} color="#FFFFFF" />
-        <Text style={styles.ctaText}>Ver resumen y pago</Text>
+        <Text style={styles.ctaText}>
+          {isCompleted ? "Ver resumen y pago" : "Esperando a que el técnico finalice…"}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -106,5 +131,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 20,
   },
+  ctaButtonDisabled: { backgroundColor: colors.border },
   ctaText: { color: "#FFFFFF", fontWeight: "700" },
 });

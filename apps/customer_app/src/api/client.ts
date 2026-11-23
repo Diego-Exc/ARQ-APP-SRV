@@ -66,6 +66,7 @@ export interface LifecycleState {
   requestId: string;
   state: string;
   assignedTechnicianId: string | null;
+  securityCode: string | null;
   updatedAt: string;
 }
 

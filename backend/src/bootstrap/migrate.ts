@@ -48,8 +48,14 @@ CREATE TABLE IF NOT EXISTS service_lifecycle (
   request_id TEXT PRIMARY KEY,
   state TEXT NOT NULL,
   assigned_technician_id TEXT,
+  security_code TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- La base ya desplegada en Render no tiene esta columna: ADD COLUMN IF NOT
+-- EXISTS es idempotente y segura de correr en cada arranque (igual que el
+-- resto de este script).
+ALTER TABLE service_lifecycle ADD COLUMN IF NOT EXISTS security_code TEXT;
 
 CREATE TABLE IF NOT EXISTS offers (
   request_id TEXT NOT NULL,
@@ -89,9 +95,9 @@ CREATE TABLE IF NOT EXISTS rating_windows (
 const SEED_TRADES = [
   { id: "plumbing", name: "Plomería", priceFrom: 45000, icon: "wrench", keywords: ["fuga", "gotea", "goteo", "tuberia", "tubería", "lavaplatos", "sifon", "sifón", "agua", "inodoro", "lavamanos"] },
   { id: "electrical", name: "Electricidad", priceFrom: 50000, icon: "bolt", keywords: ["luz", "corto", "breaker", "taco", "enchufe", "bombillo", "electric", "corriente", "chispa"] },
-  { id: "locksmith", name: "Cerrajería", priceFrom: 40000, icon: "lock", keywords: ["llave", "cerradura", "candado", "puerta", "chapa", "cerrojo"] },
+  { id: "locksmith", name: "Cerrajería", priceFrom: 40000, icon: "lock", keywords: ["llave", "cerradura", "candado", "puerta", "chapa", "cerrojo", "bisagra", "vidrio", "ventana"] },
   { id: "appliances", name: "Electrodomésticos", priceFrom: 60000, icon: "appliance", keywords: ["nevera", "lavadora", "estufa", "horno", "microondas", "secadora"] },
-  { id: "painting", name: "Pintura / Drywall", priceFrom: 55000, icon: "roller", keywords: ["pintura", "pared", "drywall", "humedad", "grieta", "muro"] },
+  { id: "painting", name: "Pintura / Drywall", priceFrom: 55000, icon: "roller", keywords: ["pintura", "pintar", "pared", "drywall", "humedad", "grieta", "muro", "techo", "resan"] },
 ];
 
 const SEED_TECHNICIANS = [
@@ -107,9 +113,12 @@ export async function runMigrations(bcryptHash: (plain: string) => string): Prom
   await pool.query(SCHEMA_SQL);
 
   for (const trade of SEED_TRADES) {
+    // DO UPDATE (no DO NOTHING): la base ya desplegada en Render fue sembrada
+    // antes de ampliar estas palabras clave (issue #25, hallazgo PaisaBot) —
+    // sin esto, el fix nunca llegaría a producción.
     await pool.query(
       `INSERT INTO trades (id, name, price_from, icon, keywords) VALUES ($1,$2,$3,$4,$5)
-       ON CONFLICT (id) DO NOTHING`,
+       ON CONFLICT (id) DO UPDATE SET keywords = $5`,
       [trade.id, trade.name, trade.priceFrom, trade.icon, trade.keywords],
     );
   }

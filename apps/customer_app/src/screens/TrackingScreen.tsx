@@ -29,6 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Tracking">;
 export function TrackingScreen({ navigation, route }: Props): React.JSX.Element {
   const { requestId, technicianId, technicianName, distanceKm } = route.params;
   const [state, setState] = useState("ASSIGNED");
+  const [securityCode, setSecurityCode] = useState<string | null>(null);
 
   const technicianOrigin = useMemo(() => technicianStartPoint(distanceKm), [distanceKm]);
   const progress = PROGRESS_BY_STATE[state] ?? 0;
@@ -39,7 +40,20 @@ export function TrackingScreen({ navigation, route }: Props): React.JSX.Element 
     // El cliente solo recibe el avance real del servicio (lo reporta el
     // técnico desde pro_app: ASSIGNED -> EN_ROUTE -> IN_PROGRESS ->
     // COMPLETED); nunca lo escribe (decisión de diseño, issue #25).
-    const close = api.openServiceSocket(requestId, (lifecycle) => setState(lifecycle.state));
+    // El WebSocket solo empuja cambios futuros, así que se pide el estado
+    // actual una vez al entrar (el código de seguridad ya existe desde que
+    // se aceptó el servicio).
+    api
+      .getServiceState(requestId)
+      .then((lifecycle) => {
+        setState(lifecycle.state);
+        setSecurityCode(lifecycle.securityCode);
+      })
+      .catch(() => undefined);
+    const close = api.openServiceSocket(requestId, (lifecycle) => {
+      setState(lifecycle.state);
+      setSecurityCode(lifecycle.securityCode);
+    });
     return close;
   }, [requestId]);
 
@@ -88,7 +102,7 @@ export function TrackingScreen({ navigation, route }: Props): React.JSX.Element 
         <View style={styles.securityBox}>
           <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
           <Text style={styles.securityLabel}>Código de Seguridad</Text>
-          <Text style={styles.securityCode}>8492</Text>
+          <Text style={styles.securityCode}>{securityCode ?? "----"}</Text>
           <Text style={styles.securityHint}>Pídeselo al técnico antes de abrir la puerta</Text>
         </View>
 

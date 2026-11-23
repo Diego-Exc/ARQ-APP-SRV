@@ -42,7 +42,7 @@ export function createServiceLifecycleRouter(
     "/services/:requestId/state",
     requireRole("PRO"),
     asyncHandler(async (req, res) => {
-      res.json(await transitionLifecycle.execute(req.params.requestId, req.body.state));
+      res.json(await transitionLifecycle.execute(req.params.requestId, req.body.state, req.body.code));
     }),
   );
 
