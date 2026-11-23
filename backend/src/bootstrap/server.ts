@@ -79,7 +79,10 @@ export function createApp(): Express {
   // distinto al de esta API, y el navegador sí aplica CORS a diferencia de
   // Expo Go nativo.
   app.use(cors());
-  app.use(express.json());
+  // Limite por defecto de express.json() es 100kb: las fotos adjuntas a una
+  // solicitud viajan en base64 dentro del mismo body y superan eso facil,
+  // lo que tumbaba el diagnostico completo con 413 Payload Too Large.
+  app.use(express.json({ limit: "10mb" }));
 
   // --- Composición de dependencias por módulo (bootstrap, ADR-0002) ---
   // Todos los repositorios son adaptadores Postgres reales (src/shared/db.ts);

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, View, Text, Switch, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { ScrollView, View, Text, Switch, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { proApi, TechnicianProfile } from "../api/client";
+import { confirmAlert } from "../utils/alert";
 import { documents } from "../data/mock";
 import type { MainTabParamList, RootStackParamList } from "../navigation/AppNavigator";
 
@@ -32,17 +33,15 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   }
 
   function handleLogout() {
-    Alert.alert("Cerrar sesión", "¿Seguro que quieres salir de tu cuenta de técnico?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Cerrar sesión",
-        style: "destructive",
-        onPress: () => {
-          proApi.logout();
-          navigation.getParent()?.reset({ index: 0, routes: [{ name: "Login" }] });
-        },
+    confirmAlert(
+      "Cerrar sesión",
+      "¿Seguro que quieres salir de tu cuenta de técnico?",
+      () => {
+        proApi.logout();
+        navigation.getParent()?.reset({ index: 0, routes: [{ name: "Login" }] });
       },
-    ]);
+      { confirmLabel: "Cerrar sesión", destructive: true },
+    );
   }
 
   if (!profile) {

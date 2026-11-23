@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,6 +14,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { api } from "../api/client";
+import { showAlert } from "../utils/alert";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
@@ -27,7 +27,7 @@ const CATEGORY_BAR = [
 ];
 
 function soon(label: string) {
-  Alert.alert(label, "Próximamente disponible.");
+  showAlert(label, "Próximamente disponible.");
 }
 
 export function LoginScreen({ navigation }: Props): React.JSX.Element {
@@ -46,7 +46,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
         await api.login(email, password);
       } else {
         if (!name.trim()) {
-          Alert.alert("Falta tu nombre", "Escribe tu nombre para crear la cuenta.");
+          showAlert("Falta tu nombre", "Escribe tu nombre para crear la cuenta.");
           setLoading(false);
           return;
         }
@@ -54,7 +54,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
       }
       navigation.replace("MainTabs");
     } catch (error) {
-      Alert.alert(mode === "login" ? "No se pudo iniciar sesión" : "No se pudo crear la cuenta", (error as Error).message);
+      showAlert(mode === "login" ? "No se pudo iniciar sesión" : "No se pudo crear la cuenta", (error as Error).message);
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, Alert } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { proApi, ServiceRequestView, TechnicianOffer } from "../api/client";
+import { showAlert } from "../utils/alert";
 import type { MainTabParamList, RootStackParamList } from "../navigation/AppNavigator";
 import type { NavigationProp } from "@react-navigation/native";
 
@@ -49,7 +50,7 @@ export function IncomingRequestsScreen({ navigation }: Props): React.JSX.Element
       await proApi.acceptService(requestId);
       navigation.getParent<NavigationProp<RootStackParamList>>()?.navigate("ServiceDetail", { requestId });
     } catch (error) {
-      Alert.alert("No se pudo aceptar", (error as Error).message);
+      showAlert("No se pudo aceptar", (error as Error).message);
     } finally {
       setAcceptingId(null);
     }

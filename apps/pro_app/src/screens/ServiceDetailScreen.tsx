@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { proApi } from "../api/client";
+import { showAlert } from "../utils/alert";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const NEXT_STATE: Record<string, { label: string; next: string; icon: keyof typeof Ionicons.glyphMap }> = {
@@ -43,7 +44,7 @@ export function ServiceDetailScreen({ navigation, route }: Props): React.JSX.Ele
   async function handleAdvance() {
     if (!action) return;
     if (needsCode && codeInput.trim().length === 0) {
-      Alert.alert("Falta el código", "Pídele al cliente el código de seguridad antes de iniciar.");
+      showAlert("Falta el código", "Pídele al cliente el código de seguridad antes de iniciar.");
       return;
     }
     setLoading(true);
@@ -52,7 +53,7 @@ export function ServiceDetailScreen({ navigation, route }: Props): React.JSX.Ele
       setState(updated.state);
       setCodeInput("");
     } catch (error) {
-      Alert.alert("No se pudo actualizar el estado", (error as Error).message);
+      showAlert("No se pudo actualizar el estado", (error as Error).message);
     } finally {
       setLoading(false);
     }

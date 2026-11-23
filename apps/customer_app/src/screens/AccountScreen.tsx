@@ -1,10 +1,11 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NavigationProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { api } from "../api/client";
+import { confirmAlert, showAlert } from "../utils/alert";
 import type { MainTabParamList, RootStackParamList } from "../navigation/AppNavigator";
 
 type Props = BottomTabScreenProps<MainTabParamList, "AccountTab">;
@@ -16,17 +17,15 @@ export function AccountScreen({ navigation }: Props): React.JSX.Element {
   const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>();
 
   function handleLogout() {
-    Alert.alert("Cerrar sesión", "¿Seguro que quieres salir de tu cuenta?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Cerrar sesión",
-        style: "destructive",
-        onPress: () => {
-          api.logout();
-          rootNavigation?.reset({ index: 0, routes: [{ name: "Login" }] });
-        },
+    confirmAlert(
+      "Cerrar sesión",
+      "¿Seguro que quieres salir de tu cuenta?",
+      () => {
+        api.logout();
+        rootNavigation?.reset({ index: 0, routes: [{ name: "Login" }] });
       },
-    ]);
+      { confirmLabel: "Cerrar sesión", destructive: true },
+    );
   }
 
   return (
@@ -62,7 +61,7 @@ function MenuRow({
   return (
     <TouchableOpacity
       style={styles.menuRow}
-      onPress={onPress ?? (() => Alert.alert(label, "Próximamente disponible."))}
+      onPress={onPress ?? (() => showAlert(label, "Próximamente disponible."))}
     >
       <Ionicons name={icon} size={20} color={danger ? colors.danger : colors.textPrimary} />
       <Text style={[styles.menuRowLabel, danger && { color: colors.danger }]}>{label}</Text>
