@@ -22,10 +22,6 @@ import { ServiceMap, MapMarker } from "../components/ServiceMap";
 import { PaisaBot } from "../components/PaisaBot";
 import type { MainTabParamList, RootStackParamList } from "../navigation/AppNavigator";
 
-// Altura aproximada de la barra de pestañas (react-navigation/bottom-tabs,
-// sin safe-area inset) que este Home nunca debe tapar con sus paneles.
-const TAB_BAR_CLEARANCE = 56;
-
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   wrench: "water",
   bolt: "flash",
@@ -482,10 +478,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    // La barra de pestañas vive fuera de este Tab (es un screen de
-    // react-navigation/bottom-tabs con altura propia); se deja un margen
-    // fijo para que el panel flotante nunca quede tapado por ella.
-    bottom: TAB_BAR_CLEARANCE,
+    // React Navigation ya reserva el alto de la barra de pestañas fuera de
+    // este screen (tabBarStyle no usa position:"absolute"), así que el panel
+    // debe anclarse al borde inferior real de este contenedor (bottom: 0):
+    // cualquier offset aquí deja una franja de mapa visible debajo.
+    bottom: 0,
     maxHeight: "72%",
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
@@ -501,7 +498,7 @@ const styles = StyleSheet.create({
   },
   sheetScroll: { flexShrink: 1 },
   quickLabel: { fontSize: 12, fontWeight: "700", color: colors.textSecondary, marginBottom: 8, marginTop: 4 },
-  resultsSheet: { top: "42%", bottom: TAB_BAR_CLEARANCE, display: "flex", overflow: "hidden" },
+  resultsSheet: { top: "42%", bottom: 0, display: "flex", overflow: "hidden" },
   resultsSheetCollapsed: { top: "85%" },
   sheetHandleTouchable: { paddingVertical: 4 },
   sheetHandle: {
