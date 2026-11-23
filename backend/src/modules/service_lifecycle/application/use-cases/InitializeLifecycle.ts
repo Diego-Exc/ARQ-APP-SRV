@@ -9,6 +9,7 @@ export class InitializeLifecycle {
       requestId,
       state: "SUBMITTED" as const,
       assignedTechnicianId: null,
+      securityCode: null,
       updatedAt: new Date().toISOString(),
     };
     await this.lifecycles.save(record);

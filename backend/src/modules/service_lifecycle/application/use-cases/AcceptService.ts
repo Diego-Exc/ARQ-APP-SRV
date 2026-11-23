@@ -20,6 +20,9 @@ export class AcceptService {
       ...current,
       state: "ASSIGNED" as const,
       assignedTechnicianId: technicianId,
+      // Se genera una sola vez: si el servicio ya tenia codigo (p.ej. el
+      // propio tecnico vuelve a llamar accept), no se reemplaza.
+      securityCode: current.securityCode ?? String(Math.floor(1000 + Math.random() * 9000)),
       updatedAt: new Date().toISOString(),
     };
     await this.lifecycles.save(updated);

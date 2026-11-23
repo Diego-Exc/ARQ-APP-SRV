@@ -32,6 +32,7 @@ export interface LifecycleState {
   requestId: string;
   state: string;
   assignedTechnicianId: string | null;
+  securityCode: string | null;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -53,10 +54,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const proApi = {
   async login(email: string, password: string): Promise<{ name: string; technicianId: string }> {
-    const result = await request<{ token: string; userId: string; name: string }>("/auth/login", {
+    const result = await request<{ token: string; userId: string; name: string; role: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    // Esta es la app de técnicos: una cuenta de cliente tiene credenciales
+    // válidas contra el mismo backend, pero no debe poder entrar aquí.
+    if (result.role !== "PRO") {
+      throw new Error("Esta cuenta es de cliente. Ingresa desde la app ArreglaPues.");
+    }
     authToken = result.token;
     technicianId = result.userId;
     return { name: result.name, technicianId: result.userId };
@@ -85,6 +91,10 @@ export const proApi = {
     return request<ServiceRequestView>(`/requests/${requestId}`);
   },
 
+  getServiceState(requestId: string): Promise<LifecycleState> {
+    return request<LifecycleState>(`/services/${requestId}`);
+  },
+
   acceptService(requestId: string): Promise<LifecycleState> {
     return request<LifecycleState>(`/services/${requestId}/accept`, {
       method: "POST",
@@ -92,10 +102,10 @@ export const proApi = {
     });
   },
 
-  advanceState(requestId: string, state: string): Promise<LifecycleState> {
+  advanceState(requestId: string, state: string, code?: string): Promise<LifecycleState> {
     return request<LifecycleState>(`/services/${requestId}/state`, {
       method: "PATCH",
-      body: JSON.stringify({ state }),
+      body: JSON.stringify({ state, code }),
     });
   },
 

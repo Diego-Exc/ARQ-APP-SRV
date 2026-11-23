@@ -10,7 +10,8 @@ import {
   Image,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { NavigationProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { categories, clientNotifications, TECHNICIAN_DETAILS } from "../data/mock";
@@ -19,7 +20,11 @@ import { api, Candidate, TechnicianProfile } from "../api/client";
 import { CLIENT_LOCATION, regionForPoints } from "../data/location";
 import { ServiceMap, MapMarker } from "../components/ServiceMap";
 import { PaisaBot } from "../components/PaisaBot";
-import type { RootStackParamList } from "../navigation/AppNavigator";
+import type { MainTabParamList, RootStackParamList } from "../navigation/AppNavigator";
+
+// Altura aproximada de la barra de pestañas (react-navigation/bottom-tabs,
+// sin safe-area inset) que este Home nunca debe tapar con sus paneles.
+const TAB_BAR_CLEARANCE = 56;
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   wrench: "water",
@@ -29,7 +34,7 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   roller: "color-palette",
 };
 
-type Props = NativeStackScreenProps<RootStackParamList, "Home">;
+type Props = BottomTabScreenProps<MainTabParamList, "HomeTab">;
 type Phase = "browse" | "matching" | "results";
 
 interface DiagnosisSummary {
@@ -41,6 +46,9 @@ interface DiagnosisSummary {
 }
 
 export function HomeScreen({ navigation }: Props): React.JSX.Element {
+  // Tracking y Notifications viven en el Stack raiz, no dentro del
+  // Tab.Navigator: hay que subir con getParent() para llegar a ellas.
+  const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>();
   const [damageDescription, setDamageDescription] = useState("");
   const [phase, setPhase] = useState<Phase>("browse");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -173,7 +181,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
     setConfirming(true);
     try {
       await api.acceptService(diagnosis.requestId, selected.technicianId);
-      navigation.navigate("Tracking", {
+      rootNavigation?.navigate("Tracking", {
         requestId: diagnosis.requestId,
         technicianId: selected.technicianId,
         technicianName: selected.name,
@@ -199,7 +207,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           </View>
         </View>
         <View style={styles.topBarActions}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Notifications")}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => rootNavigation?.navigate("Notifications")}>
             <Ionicons name="notifications" size={18} color={colors.primary} />
             {unread > 0 ? (
               <View style={styles.badge}>
@@ -207,7 +215,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
               </View>
             ) : null}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.avatarButton} onPress={() => navigation.navigate("Account")}>
+          <TouchableOpacity style={styles.avatarButton} onPress={() => navigation.navigate("AccountTab")}>
             <Ionicons name="person" size={18} color={colors.accent} />
           </TouchableOpacity>
         </View>
@@ -474,7 +482,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
+    // La barra de pestañas vive fuera de este Tab (es un screen de
+    // react-navigation/bottom-tabs con altura propia); se deja un margen
+    // fijo para que el panel flotante nunca quede tapado por ella.
+    bottom: TAB_BAR_CLEARANCE,
     maxHeight: "46%",
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
@@ -488,7 +499,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   quickLabel: { fontSize: 12, fontWeight: "700", color: colors.textSecondary, marginBottom: 8, marginTop: 4 },
-  resultsSheet: { top: "42%", bottom: 0, display: "flex", overflow: "hidden" },
+  resultsSheet: { top: "42%", bottom: TAB_BAR_CLEARANCE, display: "flex", overflow: "hidden" },
   resultsSheetCollapsed: { top: "85%" },
   sheetHandleTouchable: { paddingVertical: 4 },
   sheetHandle: {

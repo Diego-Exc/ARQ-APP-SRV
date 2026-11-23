@@ -1,15 +1,19 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { NavigationProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { api } from "../api/client";
-import type { RootStackParamList } from "../navigation/AppNavigator";
+import type { MainTabParamList, RootStackParamList } from "../navigation/AppNavigator";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Account">;
+type Props = BottomTabScreenProps<MainTabParamList, "AccountTab">;
 
 export function AccountScreen({ navigation }: Props): React.JSX.Element {
   const name = api.currentUserName ?? "Cliente ArreglaPues";
+  // Notifications y Login viven en el Stack raiz, no dentro del Tab.Navigator:
+  // hay que subir con getParent() para navegar/resetear fuera de las pestañas.
+  const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>();
 
   function handleLogout() {
     Alert.alert("Cerrar sesión", "¿Seguro que quieres salir de tu cuenta?", [
@@ -19,7 +23,7 @@ export function AccountScreen({ navigation }: Props): React.JSX.Element {
         style: "destructive",
         onPress: () => {
           api.logout();
-          navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+          rootNavigation?.reset({ index: 0, routes: [{ name: "Login" }] });
         },
       },
     ]);
@@ -36,7 +40,7 @@ export function AccountScreen({ navigation }: Props): React.JSX.Element {
         <MenuRow icon="receipt-outline" label="Mis solicitudes" />
         <MenuRow icon="card-outline" label="Métodos de pago" />
         <MenuRow icon="location-outline" label="Direcciones guardadas" />
-        <MenuRow icon="notifications-outline" label="Notificaciones" onPress={() => navigation.navigate("Notifications")} />
+        <MenuRow icon="notifications-outline" label="Notificaciones" onPress={() => rootNavigation?.navigate("Notifications")} />
         <MenuRow icon="help-circle-outline" label="Ayuda y soporte" />
         <MenuRow icon="log-out-outline" label="Cerrar sesión" onPress={handleLogout} danger />
       </View>

@@ -30,6 +30,11 @@ export interface ServiceLifecycleRecord {
   requestId: string;
   state: ServiceState;
   assignedTechnicianId: string | null;
+  // Código numérico de 4 dígitos generado al aceptar el servicio (ver
+  // AcceptService): el cliente se lo da de viva voz al técnico, y el
+  // técnico debe ingresarlo correctamente para poder iniciar el trabajo
+  // (transición EN_ROUTE -> IN_PROGRESS, ver TransitionLifecycle).
+  securityCode: string | null;
   updatedAt: string;
 }
 

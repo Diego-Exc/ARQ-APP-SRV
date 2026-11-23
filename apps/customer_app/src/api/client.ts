@@ -66,6 +66,7 @@ export interface LifecycleState {
   requestId: string;
   state: string;
   assignedTechnicianId: string | null;
+  securityCode: string | null;
   updatedAt: string;
 }
 
@@ -107,10 +108,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   async login(email: string, password: string): Promise<{ name: string }> {
-    const result = await request<{ token: string; name: string }>("/auth/login", {
+    const result = await request<{ token: string; name: string; role: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    // Esta es la app de clientes: una cuenta de técnico tiene credenciales
+    // válidas contra el mismo backend, pero no debe poder entrar aquí.
+    if (result.role !== "CLIENT") {
+      throw new Error("Esta cuenta es de técnico. Ingresa desde la app ArreglaPues Técnico.");
+    }
     authToken = result.token;
     currentName = result.name;
     persistSession();
@@ -163,12 +169,11 @@ export const api = {
     });
   },
 
-  advanceState(requestId: string, state: string) {
-    return request<LifecycleState>(`/services/${requestId}/state`, {
-      method: "PATCH",
-      body: JSON.stringify({ state }),
-    });
-  },
+  // No se expone advanceState aqui a proposito: el avance real del servicio
+  // (en camino -> llego -> completado) solo lo escribe el tecnico desde
+  // pro_app; el backend lo rechaza con 403 si lo llama un CLIENT (issue #25).
+  // El cliente solo lee el estado por WebSocket (openServiceSocket) o polling
+  // (getServiceState).
 
   getServiceState(requestId: string) {
     return request<LifecycleState>(`/services/${requestId}`);

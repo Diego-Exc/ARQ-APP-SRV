@@ -5,10 +5,10 @@ import { restoreSession } from "./src/api/client";
 import { colors } from "./src/theme/colors";
 
 export default function App(): React.JSX.Element {
-  const [initialRoute, setInitialRoute] = useState<"Home" | "Login" | null>(null);
+  const [initialRoute, setInitialRoute] = useState<"MainTabs" | "Login" | null>(null);
 
   useEffect(() => {
-    setInitialRoute(restoreSession() ? "Home" : "Login");
+    setInitialRoute(restoreSession() ? "MainTabs" : "Login");
   }, []);
 
   useEffect(() => {

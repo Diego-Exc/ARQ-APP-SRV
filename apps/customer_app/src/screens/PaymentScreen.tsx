@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
@@ -31,6 +31,14 @@ export function PaymentScreen({ navigation, route }: Props): React.JSX.Element {
   // pago nunca genera un doble cobro.
   const idempotencyKey = useRef(`pay-${requestId}`);
 
+  // Tras el pago se pasa a la fase de calificación real (antes se enviaba
+  // automáticamente 5 estrellas con un comentario fijo, sin que el cliente
+  // eligiera nada — hallazgo de auditoría, issue #25).
+  const [phase, setPhase] = useState<"pay" | "rate">("pay");
+  const [stars, setStars] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submittingRating, setSubmittingRating] = useState(false);
+
   useEffect(() => {
     api.pricingQuote(laborCost, MATERIALS_COST, WELCOME_DISCOUNT).then(setBreakdown);
   }, [laborCost]);
@@ -49,13 +57,70 @@ export function PaymentScreen({ navigation, route }: Props): React.JSX.Element {
     setPaying(true);
     try {
       await api.capturePayment(requestId, idempotencyKey.current, total, selectedMethod);
-      await api.submitRating(requestId, technicianId, 5, "Excelente servicio, gracias ArreglaPues");
-      navigation.navigate("Home");
+      setPhase("rate");
     } catch (error) {
       Alert.alert("No se pudo procesar el pago", (error as Error).message);
     } finally {
       setPaying(false);
     }
+  }
+
+  async function handleSubmitRating() {
+    setSubmittingRating(true);
+    try {
+      await api.submitRating(requestId, technicianId, stars, comment.trim() || undefined);
+      navigation.navigate("MainTabs");
+    } catch (error) {
+      Alert.alert("No se pudo enviar la calificación", (error as Error).message);
+    } finally {
+      setSubmittingRating(false);
+    }
+  }
+
+  if (phase === "rate") {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.header}>¡Pago exitoso!</Text>
+        <Text style={styles.subheader}>Cuéntanos cómo te fue con el servicio.</Text>
+
+        <View style={styles.ratingCard}>
+          <Text style={styles.sectionTitle}>¿Cómo calificarías al técnico?</Text>
+          <View style={styles.starsRow}>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <TouchableOpacity key={value} onPress={() => setStars(value)}>
+                <Ionicons
+                  name={value <= stars ? "star" : "star-outline"}
+                  size={34}
+                  color="#F59E0B"
+                  style={{ marginHorizontal: 4 }}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.sectionTitle}>Comentario (opcional)</Text>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Cuéntanos tu experiencia..."
+            placeholderTextColor={colors.textSecondary}
+            value={comment}
+            onChangeText={setComment}
+            multiline
+          />
+        </View>
+
+        <TouchableOpacity style={styles.ctaButton} onPress={handleSubmitRating} disabled={submittingRating}>
+          {submittingRating ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+              <Text style={styles.ctaText}>Enviar calificación</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    );
   }
 
   return (
@@ -137,6 +202,26 @@ const styles = StyleSheet.create({
   loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 32 },
   header: { fontSize: 20, fontWeight: "700", color: colors.primary, marginBottom: 12 },
+  subheader: { color: colors.textSecondary, marginBottom: 16 },
+  ratingCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    marginBottom: 16,
+  },
+  starsRow: { flexDirection: "row", justifyContent: "center", marginVertical: 12 },
+  commentInput: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    minHeight: 70,
+    color: colors.textPrimary,
+    textAlignVertical: "top",
+  },
   breakdownCard: {
     backgroundColor: colors.surface,
     borderRadius: 14,
