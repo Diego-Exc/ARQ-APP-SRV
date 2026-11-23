@@ -107,10 +107,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   async login(email: string, password: string): Promise<{ name: string }> {
-    const result = await request<{ token: string; name: string }>("/auth/login", {
+    const result = await request<{ token: string; name: string; role: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    // Esta es la app de clientes: una cuenta de técnico tiene credenciales
+    // válidas contra el mismo backend, pero no debe poder entrar aquí.
+    if (result.role !== "CLIENT") {
+      throw new Error("Esta cuenta es de técnico. Ingresa desde la app ArreglaPues Técnico.");
+    }
     authToken = result.token;
     currentName = result.name;
     persistSession();

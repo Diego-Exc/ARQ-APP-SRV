@@ -18,6 +18,11 @@ export function createServiceLifecycleRouter(
     }),
   );
 
+  // Nota de auditoria: este endpoint y /state los llama tanto customer_app
+  // (confirma el tecnico elegido, y simula "en camino"/"llego"/"completado"
+  // en TrackingScreen/ServiceProgressScreen) como pro_app (el tecnico acepta
+  // la oferta real). No se restringe por rol porque ambas apps lo usan hoy;
+  // ver hallazgo en PR/issue #25 sobre estados simulados por el cliente.
   router.post(
     "/services/:requestId/accept",
     asyncHandler(async (req, res) => {

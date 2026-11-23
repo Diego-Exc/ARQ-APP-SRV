@@ -2,6 +2,7 @@ import { Router } from "express";
 import { TechnicianProfileRepository } from "../../domain/ports/TechnicianProfileRepository";
 import { SetAvailability } from "../../application/use-cases/SetAvailability";
 import { asyncHandler } from "../../../../shared/asyncHandler";
+import { requireRole } from "../../../identity/adapters/inbound/authMiddleware";
 
 export function createProfilesRouter(
   profiles: TechnicianProfileRepository,
@@ -18,6 +19,7 @@ export function createProfilesRouter(
 
   router.patch(
     "/technicians/:id/availability",
+    requireRole("PRO"),
     asyncHandler(async (req, res) => {
       await setAvailability.execute(req.params.id, Boolean(req.body.online));
       res.status(204).end();
