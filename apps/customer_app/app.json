@@ -16,7 +16,13 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ArreglaPues necesita acceso a tus fotos para adjuntarlas al diagnóstico del daño."
+        }
+      ]
     ]
   }
 }
