@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +15,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { proApi } from "../api/client";
+import { showAlert } from "../utils/alert";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
@@ -33,7 +33,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
       await proApi.login(email, password);
       navigation.replace("MainTabs");
     } catch (error) {
-      Alert.alert("No se pudo iniciar sesión", (error as Error).message);
+      showAlert("No se pudo iniciar sesión", (error as Error).message);
     } finally {
       setLoading(false);
     }

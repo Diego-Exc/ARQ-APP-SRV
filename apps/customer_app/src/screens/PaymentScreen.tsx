@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { formatCOP } from "../utils/format";
+import { showAlert } from "../utils/alert";
 import { api, PricingBreakdown } from "../api/client";
 
 const METHOD_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -59,7 +60,7 @@ export function PaymentScreen({ navigation, route }: Props): React.JSX.Element {
       await api.capturePayment(requestId, idempotencyKey.current, total, selectedMethod);
       setPhase("rate");
     } catch (error) {
-      Alert.alert("No se pudo procesar el pago", (error as Error).message);
+      showAlert("No se pudo procesar el pago", (error as Error).message);
     } finally {
       setPaying(false);
     }
@@ -71,7 +72,7 @@ export function PaymentScreen({ navigation, route }: Props): React.JSX.Element {
       await api.submitRating(requestId, technicianId, stars, comment.trim() || undefined);
       navigation.navigate("MainTabs");
     } catch (error) {
-      Alert.alert("No se pudo enviar la calificación", (error as Error).message);
+      showAlert("No se pudo enviar la calificación", (error as Error).message);
     } finally {
       setSubmittingRating(false);
     }
