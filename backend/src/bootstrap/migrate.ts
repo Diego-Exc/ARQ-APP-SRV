@@ -93,10 +93,10 @@ CREATE TABLE IF NOT EXISTS rating_windows (
 `;
 
 const SEED_TRADES = [
-  { id: "plumbing", name: "Plomería", priceFrom: 45000, icon: "wrench", keywords: ["fuga", "gotea", "goteo", "tuberia", "tubería", "lavaplatos", "sifon", "sifón", "agua", "inodoro", "lavamanos"] },
-  { id: "electrical", name: "Electricidad", priceFrom: 50000, icon: "bolt", keywords: ["luz", "corto", "breaker", "taco", "enchufe", "bombillo", "electric", "corriente", "chispa"] },
-  { id: "locksmith", name: "Cerrajería", priceFrom: 40000, icon: "lock", keywords: ["llave", "cerradura", "candado", "puerta", "chapa", "cerrojo", "bisagra", "vidrio", "ventana"] },
-  { id: "appliances", name: "Electrodomésticos", priceFrom: 60000, icon: "appliance", keywords: ["nevera", "lavadora", "estufa", "horno", "microondas", "secadora"] },
+  { id: "plumbing", name: "Plomería", priceFrom: 45000, icon: "wrench", keywords: ["fuga", "gotea", "goteo", "tuberia", "tubería", "lavaplatos", "sifon", "sifón", "agua", "inodoro", "lavamanos", "plomeria", "plomería", "caño", "cano"] },
+  { id: "electrical", name: "Electricidad", priceFrom: 50000, icon: "bolt", keywords: ["luz", "corto", "breaker", "taco", "enchufe", "bombillo", "electric", "corriente", "chispa", "electricidad"] },
+  { id: "locksmith", name: "Cerrajería", priceFrom: 40000, icon: "lock", keywords: ["llave", "cerradura", "candado", "puerta", "chapa", "cerrojo", "bisagra", "vidrio", "ventana", "cerrajeria", "cerrajería"] },
+  { id: "appliances", name: "Electrodomésticos", priceFrom: 60000, icon: "appliance", keywords: ["nevera", "lavadora", "estufa", "horno", "microondas", "secadora", "electrodomestico", "electrodoméstico", "electrodomesticos", "electrodomésticos"] },
   { id: "painting", name: "Pintura / Drywall", priceFrom: 55000, icon: "roller", keywords: ["pintura", "pintar", "pared", "drywall", "humedad", "grieta", "muro", "techo", "resan"] },
 ];
 

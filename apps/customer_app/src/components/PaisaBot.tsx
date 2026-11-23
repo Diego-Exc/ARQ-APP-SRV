@@ -81,10 +81,12 @@ export function PaisaBot({ onSelect, style }: Props): React.JSX.Element {
   const greetingOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // useNativeDriver:true no anima bien en react-native-web (se queda
+    // pegado/estatico en el navegador) - en web y nativo se usa false.
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(bounce, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(bounce, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bounce, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+        Animated.timing(bounce, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
       ]),
     );
     loop.start();
@@ -97,6 +99,8 @@ export function PaisaBot({ onSelect, style }: Props): React.JSX.Element {
 
     // El saludo aparece cada cierto tiempo con una frase distinta cada vez
     // (no un texto fijo pegado todo el rato), para que se sienta mas natural.
+    // El apagado se controla con sus propios setTimeout (no con el callback
+    // de Animated.start): si la animacion no corre bien, igual desaparece.
     function cycle(delay: number) {
       timer = setTimeout(() => {
         if (cancelled || open) {
@@ -105,14 +109,18 @@ export function PaisaBot({ onSelect, style }: Props): React.JSX.Element {
         }
         setGreeting((prev) => randomGreeting(prev));
         setShowGreeting(true);
-        Animated.sequence([
-          Animated.timing(greetingOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.delay(3400),
-          Animated.timing(greetingOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-        ]).start(() => {
-          setShowGreeting(false);
-          cycle(14000);
-        });
+        greetingOpacity.setValue(0);
+        Animated.timing(greetingOpacity, { toValue: 1, duration: 400, useNativeDriver: false }).start();
+
+        timer = setTimeout(() => {
+          if (cancelled) return;
+          Animated.timing(greetingOpacity, { toValue: 0, duration: 500, useNativeDriver: false }).start();
+          timer = setTimeout(() => {
+            if (cancelled) return;
+            setShowGreeting(false);
+            cycle(14000);
+          }, 500);
+        }, 3800);
       }, delay);
     }
     cycle(900);
