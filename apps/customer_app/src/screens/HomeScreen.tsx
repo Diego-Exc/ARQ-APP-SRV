@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  Animated,
+  PanResponder,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
@@ -33,6 +35,15 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 type Props = BottomTabScreenProps<MainTabParamList, "HomeTab">;
 type Phase = "browse" | "matching" | "results";
 
+// Fracciones de alto del panel para sus tres estados tipo Uber/DiDi,
+// sobre el alto medido del contenedor (ya excluye la barra de pestañas).
+const SNAP_FRACTIONS = [0.18, 0.55, 0.92] as const;
+const MID_SNAP_INDEX = 1;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
 interface DiagnosisSummary {
   requestId: string;
   tradeId: string | null;
@@ -55,9 +66,77 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const [confirming, setConfirming] = useState(false);
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [containerHeight, setContainerHeight] = useState(0);
 
   const unread = clientNotifications.filter((n) => !n.read).length;
   const firstName = (api.currentUserName ?? "Cliente").split(" ")[0];
+
+  // Bottom sheet arrastrable (tipo Uber/DiDi) para el panel de "browse":
+  // altura animada en pixeles + PanResponder en el handle (mouse y touch,
+  // sin pelear con el scroll interno del contenido).
+  const snapHeights = useMemo(
+    () => SNAP_FRACTIONS.map((fraction) => containerHeight * fraction),
+    [containerHeight],
+  );
+  const snapHeightsRef = useRef(snapHeights);
+  snapHeightsRef.current = snapHeights;
+
+  const sheetHeight = useRef(new Animated.Value(0)).current;
+  const dragStartHeight = useRef(0);
+  const currentHeightRef = useRef(0);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    const id = sheetHeight.addListener(({ value }) => {
+      currentHeightRef.current = value;
+    });
+    return () => sheetHeight.removeListener(id);
+  }, [sheetHeight]);
+
+  useEffect(() => {
+    if (containerHeight > 0 && !initializedRef.current) {
+      initializedRef.current = true;
+      sheetHeight.setValue(snapHeights[MID_SNAP_INDEX]);
+    }
+  }, [containerHeight, snapHeights, sheetHeight]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_evt, gesture) => Math.abs(gesture.dy) > 2,
+      onPanResponderGrant: () => {
+        // Si el panel aun estaba en pleno Animated.spring de un gesto
+        // anterior, hay que detenerlo antes de leer su valor: si no, la
+        // animacion vieja sigue corriendo en paralelo al nuevo arrastre y
+        // ambos pelean por el mismo valor (el panel termina en una altura
+        // que no es ninguno de los tres estados).
+        sheetHeight.stopAnimation((value) => {
+          dragStartHeight.current = value;
+          currentHeightRef.current = value;
+        });
+      },
+      onPanResponderMove: (_evt, gesture) => {
+        const [min, , max] = snapHeightsRef.current;
+        const next = clamp(dragStartHeight.current - gesture.dy, min, max);
+        sheetHeight.setValue(next);
+      },
+      onPanResponderRelease: (_evt, gesture) => {
+        const heights = snapHeightsRef.current;
+        const raw = clamp(dragStartHeight.current - gesture.dy, heights[0], heights[2]);
+        // Al soltar, se ajusta siempre al estado (de los 3) más cercano por
+        // distancia real — nunca se queda en una posición intermedia.
+        const targetIndex = heights.reduce(
+          (closest, h, i) => (Math.abs(h - raw) < Math.abs(heights[closest] - raw) ? i : closest),
+          0,
+        );
+        Animated.spring(sheetHeight, {
+          toValue: heights[targetIndex],
+          useNativeDriver: false,
+          bounciness: 4,
+        }).start();
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     api
@@ -191,7 +270,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}>
       <ServiceMap markers={markers} region={region} style={styles.map} />
 
       <View style={styles.topBar}>
@@ -222,8 +301,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
       ) : null}
 
       {phase !== "results" ? (
-        <View style={styles.sheet}>
-          <View style={styles.sheetHandle} />
+        <Animated.View style={[styles.sheet, containerHeight > 0 ? { height: sheetHeight } : styles.sheetFallbackHeight]}>
+          <View {...panResponder.panHandlers} style={styles.sheetHandleTouchable}>
+            <View style={styles.sheetHandle} />
+          </View>
           <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Text style={styles.greeting}>Hola, {firstName} 👋</Text>
           <Text style={styles.title}>¿Qué necesitas arreglar hoy?</Text>
@@ -301,7 +382,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             <Ionicons name="construct" size={12} color={colors.success} /> {allTechnicians.length} técnicos disponibles cerca de ti
           </Text>
           </ScrollView>
-        </View>
+        </Animated.View>
       ) : (
         <View style={[styles.sheet, styles.resultsSheet, sheetCollapsed && styles.resultsSheetCollapsed]}>
           <TouchableOpacity onPress={() => setSheetCollapsed((v) => !v)} style={styles.sheetHandleTouchable}>
@@ -411,7 +492,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  // userSelect: "none" evita que un arrastre con mouse sobre el panel
+  // seleccione texto de la pantalla (eso interrumpe el gesto a mitad de
+  // camino en la web, dejando el panel pegado en una altura intermedia).
+  container: { flex: 1, backgroundColor: colors.background, userSelect: "none" as "none" },
   map: { ...StyleSheet.absoluteFill },
   topBar: {
     position: "absolute",
@@ -483,7 +567,6 @@ const styles = StyleSheet.create({
     // debe anclarse al borde inferior real de este contenedor (bottom: 0):
     // cualquier offset aquí deja una franja de mapa visible debajo.
     bottom: 0,
-    maxHeight: "72%",
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -496,11 +579,14 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  // Antes de medir el contenedor con onLayout, la primera pintura usa este
+  // alto de respaldo (misma fracción que el estado "intermedio").
+  sheetFallbackHeight: { height: "55%" },
   sheetScroll: { flexShrink: 1 },
   quickLabel: { fontSize: 12, fontWeight: "700", color: colors.textSecondary, marginBottom: 8, marginTop: 4 },
   resultsSheet: { top: "42%", bottom: 0, display: "flex", overflow: "hidden" },
   resultsSheetCollapsed: { top: "85%" },
-  sheetHandleTouchable: { paddingVertical: 4 },
+  sheetHandleTouchable: { paddingVertical: 10, alignSelf: "stretch" },
   sheetHandle: {
     width: 40,
     height: 4,
